@@ -11,6 +11,7 @@ import {
 import { GitHubAPI } from './github-api';
 import { ScoreCalculator } from './score-calculator';
 import { BusFactorCalculator } from './bus-factor';
+import { StrengthsAnalyzer, RecommendationsAnalyzer } from '../analysis/insights';
 
 /**
  * Analyzes a GitHub repository and generates a quality score and insights
@@ -194,15 +195,15 @@ export class RepositoryAnalyzer {
         }
       ];
       
-      // Generate strengths and recommendations
-      const strengths = this.identifyStrengths(
+      // Generate strengths and recommendations using the new analyzer classes
+      const strengths = StrengthsAnalyzer.identify(
         stars, forks, contributorsCount, busFactor, recentCommits, 
         daysSinceLastUpdate, issueResolutionRate, prMergeRate, 
         totalIssues, closedPRs, releases, this.hasReadme, hasWiki, hasWebsite, this.readmeLength,
         hasLicense
       );
       
-      const recommendations = this.generateRecommendations(
+      const recommendations = RecommendationsAnalyzer.generate(
         repoData.description, this.hasReadme, this.readmeLength, hasWiki, hasWebsite, 
         contributorsCount, busFactor, stars, issueResolutionRate, 
         openPRs, closedPRs, openIssues, daysSinceLastUpdate, releaseCount, 
@@ -257,188 +258,5 @@ export class RepositoryAnalyzer {
       console.error("Error analyzing repository:", error);
       throw error;
     }
-  }
-  
-  /**
-   * Identify repository strengths
-   * @returns Array of strength descriptions
-   */
-  private identifyStrengths(
-    stars: number, 
-    forks: number, 
-    contributorsCount: number, 
-    busFactor: number, 
-    recentCommits: number, 
-    daysSinceLastUpdate: number, 
-    issueResolutionRate: string, 
-    prMergeRate: string, 
-    totalIssues: number, 
-    closedPRs: number, 
-    releases: ReleaseData[] | null, 
-    hasReadme: boolean, 
-    hasWiki: boolean, 
-    hasWebsite: boolean, 
-    readmeLength: number,
-    hasLicense: boolean
-  ): string[] {
-    const strengths: string[] = [];
-    
-    // Popularity strengths
-    if (stars > 5000) {
-      strengths.push("⭐ Extremely popular repository with widespread adoption");
-    } else if (stars > 1000) {
-      strengths.push("⭐ Highly popular repository with significant community interest");
-    } else if (stars > 100) {
-      strengths.push("⭐ Good popularity with the developer community");
-    }
-    
-    if (forks > 100) {
-      strengths.push("🍴 Strong fork count indicating high reuse and adaptation");
-    }
-    
-    // Community strengths
-    if (contributorsCount > 20) {
-      strengths.push("👥 Exceptional contributor base with a large number of developers");
-    } else if (contributorsCount > 10) {
-      strengths.push("👥 Strong contributor base with multiple developers contributing to the codebase");
-    } else if (contributorsCount > 5 && busFactor > 1) {
-      strengths.push("👥 Healthy contributor community with shared project ownership");
-    }
-    
-    if (busFactor >= 3) {
-      strengths.push("🚌 Low bus factor risk - development is well-distributed among contributors");
-    }
-    
-    // Activity strengths
-    if (recentCommits > 50) {
-      strengths.push("📈 Exceptionally active development with very frequent commits");
-    } else if (recentCommits > 30) {
-      strengths.push("📈 Very active development with frequent commits");
-    } else if (recentCommits > 10) {
-      strengths.push("📈 Steady recent development activity");
-    }
-    
-    if (daysSinceLastUpdate < 7 && recentCommits > 5) {
-      strengths.push("⚡ Actively maintained with recent updates");
-    }
-    
-    // Maintenance strengths
-    if (issueResolutionRate !== 'N/A' && parseFloat(issueResolutionRate) > 80) {
-      strengths.push("🔧 Excellent issue resolution rate (>80%)");
-    } else if (issueResolutionRate !== 'N/A' && parseFloat(issueResolutionRate) > 60 && totalIssues > 20) {
-      strengths.push("🔧 Good issue handling with consistent resolution");
-    }
-    
-    if (prMergeRate !== 'N/A' && parseFloat(prMergeRate) > 70 && closedPRs > 20) {
-      strengths.push("🔀 Strong pull request process with high merge rate");
-    }
-    
-    // Release strengths
-    if (releases && releases.length > 20) {
-      strengths.push("📦 Extensive release history demonstrating project maturity");
-    } else if (releases && releases.length > 5) {
-      strengths.push("🚀 Regular release schedule showing project maintenance");
-    }
-    
-    // Documentation strengths
-    if (hasLicense) {
-      strengths.push("📜 Clear licensing information");
-    }
-    
-    if (hasWebsite && hasReadme && readmeLength > 1000) {
-      strengths.push("📚 Comprehensive documentation with detailed README and project website");
-    } else if (hasWiki && hasReadme) {
-      strengths.push("📚 Well-documented with both README and Wiki");
-    } else if (hasWebsite && hasReadme) {
-      strengths.push("📚 Well-documented with both README and project website");
-    } else if (hasReadme && readmeLength > 1000) {
-      strengths.push("📄 Detailed README with comprehensive information");
-    }
-    
-    return strengths;
-  }
-  
-  /**
-   * Generate repository improvement recommendations
-   * @returns Array of recommendation descriptions
-   */
-  private generateRecommendations(
-    description: string | null, 
-    hasReadme: boolean, 
-    readmeLength: number, 
-    hasWiki: boolean, 
-    hasWebsite: boolean, 
-    contributorsCount: number, 
-    busFactor: number, 
-    stars: number, 
-    issueResolutionRate: string, 
-    openPRs: number, 
-    closedPRs: number, 
-    openIssues: number, 
-    daysSinceLastUpdate: number, 
-    releaseCount: number, 
-    daysSinceCreation: number, 
-    avgReleaseFrequency: string,
-    hasLicense: boolean
-  ): string[] {
-    const recommendations: string[] = [];
-    
-    // Documentation recommendations
-    if (!description || description.length < 20) {
-      recommendations.push("⚠️ The repository lacks a detailed description - add a clear explanation of the project's purpose");
-    }
-    
-    if (!hasReadme) {
-      recommendations.push("⚠️ Missing README file - add a comprehensive README to help users understand and use your project");
-    } else if (readmeLength < 300) {
-      recommendations.push("⚠️ README is too brief - expand it to include installation, usage, and contribution guidelines");
-    }
-    
-    if (!hasWiki && !hasWebsite && contributorsCount > 3) {
-      recommendations.push("⚠️ Consider adding a wiki or website for more detailed documentation as your contributor base grows");
-    }
-    
-    // License recommendations
-    if (!hasLicense) {
-      recommendations.push("⚠️ Missing a defined license - add one to clarify how others can use and contribute to your code");
-    }
-    
-    // Activity recommendations
-    if (daysSinceLastUpdate > 180) {
-      recommendations.push("⚠️ Repository hasn't been updated in more than 6 months - provide a status update or mark as archived if no longer maintained");
-    } else if (daysSinceLastUpdate > 90) {
-      recommendations.push("⚠️ Low recent activity - project may appear abandoned without regular updates");
-    }
-    
-    // Community recommendations
-    if (contributorsCount < 2) {
-      recommendations.push("⚠️ Single-contributor project - consider recruiting additional contributors for project sustainability");
-    }
-    
-    if (busFactor === 1 && stars > 50) {
-      recommendations.push("⚠️ High bus factor risk - project depends heavily on a single contributor which is risky for a popular project");
-    }
-    
-    // Maintenance recommendations
-    if (issueResolutionRate !== 'N/A' && parseFloat(issueResolutionRate) < 50) {
-      recommendations.push("⚠️ Low issue resolution rate (<50%) - prioritize addressing open issues to improve user confidence");
-    }
-    
-    if (openPRs > 5 && closedPRs < openPRs) {
-      recommendations.push("⚠️ Backlog of open pull requests - review and address pending contributions to encourage further participation");
-    }
-    
-    if (openIssues > 0 && daysSinceLastUpdate > 90) {
-      recommendations.push("⚠️ Open issues with no recent activity - triage issues and update status even if they can't be fixed immediately");
-    }
-    
-    // Release recommendations
-    if (releaseCount === 0 && daysSinceCreation > 90) {
-      recommendations.push("⚠️ No formal releases found - create tagged releases for better versioning and user adoption");
-    } else if (releaseCount > 0 && avgReleaseFrequency !== 'N/A' && parseInt(avgReleaseFrequency) > 180) {
-      recommendations.push("⚠️ Infrequent releases - consider more regular release cycles to provide users with stable versions");
-    }
-    
-    return recommendations;
   }
 }

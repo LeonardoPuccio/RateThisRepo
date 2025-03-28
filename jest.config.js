@@ -5,5 +5,12 @@ module.exports = {
   transform: {
     '^.+\\.ts$': 'ts-jest',
   },
-  testRegex: '/__tests__/.*\\.test\\.ts$',
+  testRegex: 'tests/.*\\.test\\.ts$',
+  setupFilesAfterEnv: ['<rootDir>/tests/unit/jest.setup.js'],
+  collectCoverageFrom: [
+    'src/**/*.ts',
+    '!src/interfaces/**/*.ts',
+    '!src/**/*.d.ts'
+  ],
+  coverageDirectory: '<rootDir>/coverage'
 };
