@@ -9,10 +9,12 @@ A Chrome extension for analyzing GitHub repositories and providing quality metri
 ratethisrepo/
 ├── dist/                # Built extension files (load this folder in Chrome)
 ├── icons/               # Extension icons
+├── scripts/             # Utility scripts
 ├── src/                 # Source code
 │   ├── analysis/        # Analysis algorithms and insights
 │   │   └── insights/    # Strengths and recommendations analyzers
 │   ├── interfaces/      # TypeScript interfaces
+│   ├── options/         # Options page UI files
 │   ├── popup/           # Popup UI files
 │   ├── ui/              # UI components
 │   │   ├── components/  # Main UI components
@@ -22,6 +24,8 @@ ratethisrepo/
 │   │   └── services/    # UI services (styles, drag)
 │   ├── utils/           # Utility functions
 │   ├── background.ts    # Extension background script
+│   ├── config.ts        # Global configuration and debug settings
+│   ├── constants.ts     # Shared constants
 │   ├── content.ts       # Content script injected into GitHub pages
 │   └── manifest.json    # Extension manifest
 ├── tests/               # Test files
@@ -46,8 +50,11 @@ npm install
 ### Build
 
 ```bash
-# Build the extension
+# Build the extension for production
 npm run build
+
+# Build for development with debugging enabled
+npm run build:dev
 
 # Watch for changes during development
 npm run dev
@@ -57,6 +64,19 @@ npm run check-types
 
 # Run tests
 npm run test
+```
+
+### Version Management
+
+```bash
+# Increment patch version (0.2.0 → 0.2.1)
+npm run version:patch
+
+# Increment minor version (0.2.0 → 0.3.0)
+npm run version:minor
+
+# Increment major version (0.2.0 → 1.0.0)
+npm run version:major
 ```
 
 ### Loading the Extension
@@ -89,6 +109,35 @@ The extension follows a component-based architecture with clear separation of co
 - Identifies strengths and areas for improvement
 - Offers comprehensive metrics with collapsible sections
 - Explains the scoring methodology
+- Options page to customize UI elements
+- Development/production build modes with debugging utilities
+
+## Changelog
+
+### 0.2.0 (March 29, 2025)
+
+#### Added
+- Options page with toggle for floating button visibility
+- Debug utilities and separate build modes for development/production
+- Improved state synchronization between popup and content script
+- Version management scripts for easier versioning
+- Environment-based configuration system
+- Better storage handling for state persistence
+
+#### Fixed
+- Fixed synchronization issues between popup and floating button
+- Fixed panel state persistence between page reloads
+
+### 0.1.0 (March 28, 2025)
+
+#### Added
+- Initial release with GitHub repository analysis
+- Refactored UI components for better maintainability
+- Standardized UI component rendering approach
+- Implemented component-based architecture
+- Added collapsible metric panels
+- Detailed repository health indicators
+- Comprehensive scoring system for repository quality
 
 ## License
 

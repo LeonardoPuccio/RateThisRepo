@@ -1,11 +1,15 @@
 {
   "manifest_version": 3,
   "name": "RateThisRepo",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Repository analyzer: because in repositories, it's not just size that matters",
-  "permissions": ["storage", "activeTab"],
+  "homepage_url": "https://github.com/LeonardoPuccio/RateThisRepo",
+  "permissions": [
+    "storage",
+    "activeTab"
+  ],
   "host_permissions": [
-    "*://github.com/*", 
+    "*://github.com/*",
     "*://api.github.com/*"
   ],
   "incognito": "split",
@@ -23,8 +27,12 @@
   },
   "content_scripts": [
     {
-      "matches": ["https://github.com/*/*"],
-      "js": ["content.js"],
+      "matches": [
+        "https://github.com/*/*"
+      ],
+      "js": [
+        "content.js"
+      ],
       "run_at": "document_idle"
     }
   ],
