@@ -4,8 +4,9 @@
   "description": "For when size really doesn't matter",
   "main": "dist/background.js",
   "scripts": {
-    "build": "webpack --config webpack.config.js",
-    "dev": "webpack --config webpack.config.js --watch",
+    "build": "set NODE_ENV=production&& webpack --config webpack.config.js",
+    "build:dev": "set NODE_ENV=development&& set DEBUG=true&& webpack --config webpack.config.js",
+    "dev": "set NODE_ENV=development&& set DEBUG=true&& webpack --config webpack.config.js --watch",
     "clean": "rimraf dist/*",
     "check-types": "tsc --noEmit",
     "test": "jest",
