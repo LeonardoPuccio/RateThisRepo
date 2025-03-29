@@ -1,4 +1,6 @@
 import { AnalysisResult } from '../interfaces/analysis.interface';
+import { STORAGE_KEYS, ACTIONS } from '../constants';
+import { DEBUG_MODE } from '../config';
 
 document.addEventListener('DOMContentLoaded', function() {
   // Get DOM elements
@@ -9,6 +11,10 @@ document.addEventListener('DOMContentLoaded', function() {
   const recentSummary = document.getElementById('recent-summary') as HTMLElement;
   const optionsBtn = document.getElementById('options-btn') as HTMLButtonElement;
   
+  // UI State
+  let isPanelVisible = false;
+  let hasAnalysisData = false;
+  
   // Check if we're on a GitHub repository page
   chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
     const url = tabs[0].url || '';
@@ -18,8 +24,8 @@ document.addEventListener('DOMContentLoaded', function() {
       notGithubMessage.classList.add('hidden');
       githubContent.classList.remove('hidden');
       
-      // Load any recent analysis data
-      loadRecentAnalysis();
+      // Load state immediately when popup opens
+      loadStateFromStorage();
     } else {
       notGithubMessage.classList.remove('hidden');
       githubContent.classList.add('hidden');
@@ -32,18 +38,16 @@ document.addEventListener('DOMContentLoaded', function() {
   });
   
   showPanelBtn.addEventListener('click', function() {
-    showAnalysisPanel();
+    toggleAnalysisPanel();
   });
   
   optionsBtn.addEventListener('click', function() {
-    // Open options page if needed
+    // Open options page
     chrome.runtime.openOptionsPage();
   });
   
   // Functions to handle GitHub repository analysis
   function isGitHubRepoPage(url: string): boolean {
-    // Check if URL is a GitHub repository page
-    // Format: https://github.com/username/repo
     try {
       const urlObj = new URL(url);
       if (urlObj.hostname !== 'github.com') return false;
@@ -55,45 +59,114 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
   
+  /**
+   * Load state from storage and update the UI
+   */
+  function loadStateFromStorage(): void {
+    chrome.storage.local.get([
+      STORAGE_KEYS.PANEL_VISIBLE,
+      STORAGE_KEYS.HAS_ANALYSIS_DATA,
+      STORAGE_KEYS.REPO_ANALYSIS
+    ], function(result) {
+      // Update panel visibility state
+      if (result[STORAGE_KEYS.PANEL_VISIBLE] !== undefined) {
+        isPanelVisible = result[STORAGE_KEYS.PANEL_VISIBLE];
+      }
+      
+      // Update analysis data state
+      if (result[STORAGE_KEYS.HAS_ANALYSIS_DATA] !== undefined) {
+        hasAnalysisData = result[STORAGE_KEYS.HAS_ANALYSIS_DATA];
+      }
+      
+      // Display analysis data if available
+      if (result[STORAGE_KEYS.REPO_ANALYSIS]) {
+        displayRecentAnalysis(result[STORAGE_KEYS.REPO_ANALYSIS]);
+      }
+      
+      // Update UI based on state
+      updateUIBasedOnState();
+    });
+  }
+  
+  /**
+   * Update the UI based on current state
+   */
+  function updateUIBasedOnState(): void {
+    // Show/hide analysis panel button
+    if (hasAnalysisData) {
+      showPanelBtn.classList.remove('hidden');
+    } else {
+      showPanelBtn.classList.add('hidden');
+    }
+    
+    // Update panel button text
+    updatePanelButtonText();
+  }
+  
+  /**
+   * Run the repository analysis
+   */
   function runAnalysis(): void {
     chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
-      // Send message to background script to initiate analysis
-      chrome.runtime.sendMessage({ action: "analyzeRepo" });
-      
-      // Show a loading indicator
-      analyzeBtn.textContent = "Analyzing...";
-      analyzeBtn.disabled = true;
-      
-      // After a delay, check for results or enable "Show Panel" button
-      setTimeout(function() {
-        loadRecentAnalysis();
-        analyzeBtn.textContent = "Analyze Repository";
-        analyzeBtn.disabled = false;
-      }, 2000);
+      if (tabs[0].id) {
+        // Show loading indicator
+        analyzeBtn.textContent = "Analyzing...";
+        analyzeBtn.disabled = true;
+        
+        // Send message to content script
+        chrome.tabs.sendMessage(tabs[0].id, { action: ACTIONS.ANALYZE_REPO }, function(response) {
+          // After a delay, reload state to show results
+          setTimeout(function() {
+            loadStateFromStorage();
+            
+            // Reset button
+            analyzeBtn.textContent = "Analyze Repository";
+            analyzeBtn.disabled = false;
+          }, 2000);
+        });
+      }
     });
   }
   
-  function showAnalysisPanel(): void {
+  /**
+   * Toggle the analysis panel visibility
+   */
+  function toggleAnalysisPanel(): void {
     chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
       if (tabs[0].id) {
-        // Send message to content script to show the panel
-        chrome.tabs.sendMessage(tabs[0].id, { action: "showPanel" });
+        // Determine action based on current state
+        const action = isPanelVisible ? ACTIONS.HIDE_PANEL : ACTIONS.SHOW_PANEL;
+        
+        // Send message to content script
+        chrome.tabs.sendMessage(tabs[0].id, { action }, function(response) {
+          if (response && response.success) {
+            // Update local state
+            isPanelVisible = response.isPanelVisible;
+            
+            // Update UI
+            updateUIBasedOnState();
+          } else {
+            // If failed, refresh state from storage
+            loadStateFromStorage();
+          }
+        });
       }
     });
   }
   
-  function loadRecentAnalysis(): void {
-    chrome.storage.local.get('repoAnalysis', function(data) {
-      if (data.repoAnalysis) {
-        displayRecentAnalysis(data.repoAnalysis as AnalysisResult);
-      }
-    });
+  /**
+   * Update the panel button text based on panel visibility
+   */
+  function updatePanelButtonText(): void {
+    showPanelBtn.textContent = isPanelVisible ? "Hide Analysis Panel" : "Show Analysis Panel";
   }
   
+  /**
+   * Display analysis results in the popup
+   */
   function displayRecentAnalysis(analysis: AnalysisResult): void {
     // Show the recent analysis section
     recentSummary.classList.remove('hidden');
-    showPanelBtn.classList.remove('hidden');
     
     // Fill in the data
     const repoNameElement = document.querySelector('.repo-name');
@@ -148,4 +221,33 @@ document.addEventListener('DOMContentLoaded', function() {
       indicators.appendChild(indicator);
     });
   }
+  
+  // Listen for storage changes to update UI in real-time
+  chrome.storage.onChanged.addListener(function(changes, namespace) {
+    if (namespace === 'local') {
+      let stateChanged = false;
+      
+      // Check if panel visibility changed
+      if (changes[STORAGE_KEYS.PANEL_VISIBLE]) {
+        isPanelVisible = changes[STORAGE_KEYS.PANEL_VISIBLE].newValue;
+        stateChanged = true;
+      }
+      
+      // Check if analysis data availability changed
+      if (changes[STORAGE_KEYS.HAS_ANALYSIS_DATA]) {
+        hasAnalysisData = changes[STORAGE_KEYS.HAS_ANALYSIS_DATA].newValue;
+        stateChanged = true;
+      }
+      
+      // Check if the analysis data itself changed
+      if (changes[STORAGE_KEYS.REPO_ANALYSIS] && changes[STORAGE_KEYS.REPO_ANALYSIS].newValue) {
+        displayRecentAnalysis(changes[STORAGE_KEYS.REPO_ANALYSIS].newValue);
+      }
+      
+      // Update UI if needed
+      if (stateChanged) {
+        updateUIBasedOnState();
+      }
+    }
+  });
 });
