@@ -17,6 +17,7 @@
       "128": "icons/icon128.png"
     }
   },
+  "options_page": "options/options.html",
   "background": {
     "service_worker": "background.js"
   },
