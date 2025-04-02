@@ -1,6 +1,8 @@
 import { STORAGE_KEYS, ACTIONS } from '~/utils/constants';
 import { DEBUG_MODE, debugLog } from '~/utils/config';
 import { ToggleButton } from '~/ui/components/ToggleButton';
+import { AnalysisPanel } from '~/ui/components/AnalysisPanel';
+import { RepositoryAnalyzer } from '~/utils/repository-analyzer';
 
 export default defineContentScript({
   matches: ['https://github.com/*/*'],
@@ -8,7 +10,7 @@ export default defineContentScript({
   async main(ctx) {
     // Global state
     let isPanelVisible = false;
-    let currentPanel: HTMLElement | null = null;
+    let analysisPanel: AnalysisPanel | null = null;
     let repoAnalysisData: any = null;
     let toggleButton: ToggleButton | null = null;
     
@@ -57,11 +59,34 @@ export default defineContentScript({
         repoAnalysisData = result[STORAGE_KEYS.REPO_ANALYSIS];
         
         // If panel should be visible, show it
-        if (isPanelVisible && !currentPanel) {
-          // Replace this with actual implementation once UIManager is migrated
-          console.log('Panel should be visible, but UIManager not yet implemented');
-          // currentPanel = UIManager.displayAnalysisPanel(repoAnalysisData);
+        if (isPanelVisible && !analysisPanel) {
+          displayAnalysisPanel(repoAnalysisData);
         }
+      }
+    }
+    
+    /**
+     * Display analysis panel with the provided data
+     */
+    function displayAnalysisPanel(data: any): void {
+      // Create panel if it doesn't exist
+      if (!analysisPanel) {
+        analysisPanel = new AnalysisPanel();
+        analysisPanel.appendTo(document.body);
+      }
+      
+      // Set data and show the panel
+      analysisPanel.setData(data);
+      analysisPanel.show();
+    }
+    
+    /**
+     * Hide and remove the analysis panel
+     */
+    function hideAnalysisPanel(): void {
+      if (analysisPanel) {
+        analysisPanel.remove();
+        analysisPanel = null;
       }
     }
     
@@ -80,9 +105,7 @@ export default defineContentScript({
       
       if (message.action === ACTIONS.SHOW_PANEL) {
         if (repoAnalysisData && !isPanelVisible) {
-          // Replace with actual implementation once UIManager is migrated
-          console.log('Show panel action received, but UIManager not yet implemented');
-          // currentPanel = UIManager.displayAnalysisPanel(repoAnalysisData);
+          displayAnalysisPanel(repoAnalysisData);
           updateState(true).then(() => {
             return { success: true, isPanelVisible: true };
           });
@@ -97,9 +120,8 @@ export default defineContentScript({
       } 
       
       if (message.action === ACTIONS.HIDE_PANEL) {
-        if (isPanelVisible && currentPanel) {
-          currentPanel.remove();
-          currentPanel = null;
+        if (isPanelVisible && analysisPanel) {
+          hideAnalysisPanel();
           updateState(false).then(() => {
             return { success: true, isPanelVisible: false };
           });
@@ -114,16 +136,13 @@ export default defineContentScript({
       } 
       
       if (message.action === ACTIONS.TOGGLE_PANEL) {
-        if (isPanelVisible && currentPanel) {
-          currentPanel.remove();
-          currentPanel = null;
+        if (isPanelVisible && analysisPanel) {
+          hideAnalysisPanel();
           updateState(false).then(() => {
             return { success: true, isPanelVisible: false };
           });
         } else if (repoAnalysisData) {
-          // Replace with actual implementation once UIManager is migrated
-          console.log('Toggle panel action received, but UIManager not yet implemented');
-          // currentPanel = UIManager.displayAnalysisPanel(repoAnalysisData);
+          displayAnalysisPanel(repoAnalysisData);
           updateState(true).then(() => {
             return { success: true, isPanelVisible: true };
           });
@@ -197,17 +216,14 @@ export default defineContentScript({
     function toggleAnalysisPanel(): void {
       debugLog('ui', 'Toggle panel called, current visibility:', isPanelVisible);
       
-      if (isPanelVisible && currentPanel) {
+      if (isPanelVisible && analysisPanel) {
         // Hide panel
-        currentPanel.remove();
-        currentPanel = null;
+        hideAnalysisPanel();
         updateState(false);
       } else {
         // If we already have results, show them
         if (repoAnalysisData) {
-          // Replace with actual implementation once UIManager is migrated
-          console.log('Toggle panel should show results, but UIManager not yet implemented');
-          // currentPanel = UIManager.displayAnalysisPanel(repoAnalysisData);
+          displayAnalysisPanel(repoAnalysisData);
           updateState(true);
         } else {
           // Otherwise, run the analysis
@@ -226,24 +242,14 @@ export default defineContentScript({
         const username = urlParts[0];
         const repoName = urlParts[1];
         
-        // Show loading indication
-        // Replace with actual implementation once UIManager is migrated
-        console.log('Should show loading, but UIManager not yet implemented');
-        // UIManager.showLoading();
-        
         // Create repository analyzer instance
-        // Replace with actual implementation once RepositoryAnalyzer is migrated
-        console.log('Should analyze repository, but RepositoryAnalyzer not yet implemented');
-        // const analyzer = new RepositoryAnalyzer(username, repoName);
+        const analyzer = new RepositoryAnalyzer(username, repoName);
         
         // Detect README from DOM since we're in the content script
-        // analyzer.detectReadmeFromDOM(document);
+        analyzer.detectReadmeFromDOM(document);
         
         // Analyze the repository
-        // const result = await analyzer.analyze();
-        
-        // Mock result for now
-        const result = { repoName, username };
+        const result = await analyzer.analyze();
         
         debugLog('analysis', 'Analysis complete');
         
@@ -263,23 +269,60 @@ export default defineContentScript({
         });
         
         // Display the results visually
-        if (isPanelVisible && currentPanel) {
+        if (isPanelVisible && analysisPanel) {
           // Remove the existing panel first
-          currentPanel.remove();
+          hideAnalysisPanel();
         }
         
         // Create and display the UI panel
-        // Replace with actual implementation once UIManager is migrated
-        console.log('Should display analysis panel, but UIManager not yet implemented');
-        // currentPanel = UIManager.displayAnalysisPanel(result);
+        displayAnalysisPanel(result);
         
         // Update state
         await updateState(true, true);
       } catch (error) {
         console.error("Error analyzing repository:", error);
-        // Replace with actual implementation once UIManager is migrated
-        console.log('Should show error, but UIManager not yet implemented');
-        // UIManager.showError("Failed to analyze repository: " + (error as Error).message);
+        
+        // Show an error panel or notification
+        if (analysisPanel) {
+          hideAnalysisPanel();
+        }
+        
+        // Create a basic error panel
+        const errorPanel = document.createElement('div');
+        errorPanel.style.cssText = `
+          position: fixed;
+          top: 20px;
+          right: 20px;
+          padding: 20px;
+          background: #fff;
+          border-radius: 8px;
+          box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+          z-index: 10000;
+          max-width: 400px;
+          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+        `;
+        
+        const errorTitle = document.createElement('h3');
+        errorTitle.style.color = '#cb2431';
+        errorTitle.textContent = 'Analysis Error';
+        
+        const errorMessage = document.createElement('p');
+        errorMessage.textContent = "Failed to analyze repository: " + (error as Error).message;
+        
+        const closeButton = document.createElement('button');
+        closeButton.textContent = 'Close';
+        closeButton.style.cssText = `
+          padding: 5px 10px;
+          cursor: pointer;
+          margin-top: 10px;
+        `;
+        closeButton.onclick = () => errorPanel.remove();
+        
+        errorPanel.appendChild(errorTitle);
+        errorPanel.appendChild(errorMessage);
+        errorPanel.appendChild(closeButton);
+        
+        document.body.appendChild(errorPanel);
       }
     }
     

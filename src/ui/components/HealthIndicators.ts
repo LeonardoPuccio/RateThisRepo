@@ -1,5 +1,4 @@
 import { AnalysisResult } from '../../interfaces/analysis.interface';
-import { ElementFactory } from '../helpers/ElementFactory';
 import { IconHelper } from '../helpers/IconHelper';
 
 /**

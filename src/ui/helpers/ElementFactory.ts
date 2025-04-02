@@ -3,35 +3,65 @@
  */
 export class ElementFactory {
   /**
-   * Create an HTML element with optional attributes and children
+   * Create a new DOM element with properties
    * @param tagName HTML tag name
-   * @param attributes Attributes to set on the element
-   * @param children Child elements or text content
-   * @returns The created HTML element
+   * @param options Element options
+   * @returns HTML element
    */
   public static createElement<K extends keyof HTMLElementTagNameMap>(
     tagName: K,
-    attributes?: Record<string, string>,
-    children?: (HTMLElement | string)[]
+    options: {
+      className?: string;
+      id?: string;
+      style?: Partial<CSSStyleDeclaration> | string;
+      attributes?: Record<string, string>;
+      innerHTML?: string;
+      textContent?: string;
+      children?: Array<HTMLElement | Text | string>;
+      onclick?: (e: MouseEvent) => void;
+      onmouseover?: (e: MouseEvent) => void;
+      onmouseout?: (e: MouseEvent) => void;
+    } = {}
   ): HTMLElementTagNameMap[K] {
+    // Create element
     const element = document.createElement(tagName);
     
+    // Set class
+    if (options.className) {
+      element.className = options.className;
+    }
+    
+    // Set ID
+    if (options.id) {
+      element.id = options.id;
+    }
+    
+    // Set style
+    if (options.style) {
+      if (typeof options.style === 'string') {
+        element.style.cssText = options.style;
+      } else {
+        Object.assign(element.style, options.style);
+      }
+    }
+    
     // Set attributes
-    if (attributes) {
-      Object.entries(attributes).forEach(([key, value]) => {
-        if (key === 'style' && typeof value === 'string') {
-          element.style.cssText = value;
-        } else if (key === 'className') {
-          element.className = value;
-        } else {
-          element.setAttribute(key, value);
-        }
-      });
+    if (options.attributes) {
+      for (const [key, value] of Object.entries(options.attributes)) {
+        element.setAttribute(key, value);
+      }
+    }
+    
+    // Set content
+    if (options.innerHTML !== undefined) {
+      element.innerHTML = options.innerHTML;
+    } else if (options.textContent !== undefined) {
+      element.textContent = options.textContent;
     }
     
     // Add children
-    if (children) {
-      children.forEach(child => {
+    if (options.children) {
+      options.children.forEach(child => {
         if (typeof child === 'string') {
           element.appendChild(document.createTextNode(child));
         } else {
@@ -40,109 +70,76 @@ export class ElementFactory {
       });
     }
     
+    // Add event listeners
+    if (options.onclick) {
+      element.addEventListener('click', options.onclick);
+    }
+    if (options.onmouseover) {
+      element.addEventListener('mouseover', options.onmouseover);
+    }
+    if (options.onmouseout) {
+      element.addEventListener('mouseout', options.onmouseout);
+    }
+    
     return element;
   }
   
   /**
-   * Create a div element
-   * @param className CSS class name
-   * @param style Inline CSS style
-   * @param children Child elements or text content
-   * @returns The created div element
+   * Create a container div with children
+   * @param children Child elements
+   * @param className Optional class name
+   * @returns Container div element
    */
-  public static createDiv(
-    className?: string,
-    style?: string,
-    children?: (HTMLElement | string)[]
+  public static createContainer(
+    children: Array<HTMLElement | Text | string>,
+    className?: string
   ): HTMLDivElement {
-    return this.createElement('div', 
-      { 
-        className: className || '', 
-        style: style || '' 
-      }, 
+    return this.createElement('div', {
+      className,
       children
-    );
+    });
+  }
+  
+  /**
+   * Create a simple text element
+   * @param text Text content
+   * @param options Element options
+   * @returns Span element
+   */
+  public static createText(
+    text: string,
+    options: {
+      className?: string;
+      style?: Partial<CSSStyleDeclaration> | string;
+    } = {}
+  ): HTMLSpanElement {
+    return this.createElement('span', {
+      textContent: text,
+      className: options.className,
+      style: options.style
+    });
   }
   
   /**
    * Create a button element
    * @param text Button text
-   * @param className CSS class name
-   * @param onClick Click event handler
-   * @returns The created button element
+   * @param onClick Click handler
+   * @param options Element options
+   * @returns Button element
    */
   public static createButton(
     text: string,
-    className?: string,
-    onClick?: (e: MouseEvent) => void
+    onClick: (e: MouseEvent) => void,
+    options: {
+      className?: string;
+      style?: Partial<CSSStyleDeclaration> | string;
+    } = {}
   ): HTMLButtonElement {
-    const button = this.createElement('button', 
-      { 
-        className: className || '' 
-      }, 
-      [text]
-    );
-    
-    if (onClick) {
-      button.addEventListener('click', onClick);
-    }
-    
-    return button;
-  }
-  
-  /**
-   * Create a tooltip element
-   * @param text Tooltip text
-   * @param element Element to attach tooltip to
-   * @returns Element with tooltip
-   */
-  public static createTooltip(text: string, element?: HTMLElement): HTMLElement {
-    const container = this.createElement('span', 
-      { 
-        className: 'tooltip-container' 
-      }
-    );
-    
-    // Create the tooltip text element
-    const tooltip = this.createElement('span', 
-      { 
-        className: 'tooltip-text' 
-      }, 
-      [text]
-    );
-    
-    if (element) {
-      // If an element is provided, wrap it in the tooltip container
-      container.appendChild(element);
-    }
-    container.appendChild(tooltip);
-    
-    return container;
-  }
-  
-  /**
-   * Create a progress bar
-   * @param percentage Percentage value (0-100)
-   * @param className Optional CSS class
-   * @returns Progress bar element
-   */
-  public static createProgressBar(percentage: number, className?: string): HTMLElement {
-    const barContainer = this.createElement('div', 
-      { className: 'bar-container' }
-    );
-    
-    const scorePercent = Math.min(100, Math.max(0, percentage));
-    const scoreColorClass = scorePercent >= 80 ? 'success' : 
-                           scorePercent >= 60 ? 'warning' : 'error';
-    
-    const bar = this.createElement('div', 
-      { 
-        className: `bar ${scoreColorClass} ${className || ''}`,
-        style: `width: ${scorePercent}%` 
-      }
-    );
-    
-    barContainer.appendChild(bar);
-    return barContainer;
+    return this.createElement('button', {
+      textContent: text,
+      className: options.className,
+      style: options.style,
+      onclick: onClick
+    });
   }
 }

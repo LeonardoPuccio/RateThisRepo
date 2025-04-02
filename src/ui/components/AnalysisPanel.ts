@@ -6,8 +6,8 @@ import { HealthIndicators } from './HealthIndicators';
 import { ScoreDisplay } from './ScoreDisplay';
 import { IconHelper } from '../helpers/IconHelper';
 
-// Debug mode flag - set to true only during development
-const DEBUG_MODE = false;
+// Get DEBUG_MODE from config
+import { DEBUG_MODE } from '../../utils/config';
 
 /**
  * AnalysisPanel component responsible for showing analysis results
@@ -146,7 +146,7 @@ export class AnalysisPanel {
     
     this.panel.appendChild(this.contentContainer);
     
-    // Initialize sub-components with debug mode
+    // Initialize sub-components
     this.scoreDisplay = new ScoreDisplay();
     this.healthIndicators = new HealthIndicators();
     this.detailedMetricsPanel = new DetailedMetricsPanel(DEBUG_MODE);

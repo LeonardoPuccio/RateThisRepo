@@ -2,7 +2,7 @@ import { AnalysisResult } from '../../../../interfaces/analysis.interface';
 import { CollapsibleCard } from '../CollapsibleCard';
 
 /**
- * Card for displaying language distribution information
+ * Card for displaying repository language distribution
  */
 export class LanguageDistributionCard {
   private card: CollapsibleCard;
@@ -12,70 +12,80 @@ export class LanguageDistributionCard {
    * @param data Analysis result data
    */
   constructor(data: AnalysisResult) {
-    // Create table with language data
+    // Create table with language distribution
     const tableElement = this.createLanguageTable(data);
     
     // Create the collapsible card
     this.card = new CollapsibleCard(
       'Language Distribution', 
       tableElement, 
-      'code'
+      'code',
+      true // collapsed by default
     );
+  }
+
+  /**
+   * Check if this card has data to display
+   * @param data Analysis result data
+   * @returns True if card has data to display
+   */
+  public static hasData(data: AnalysisResult): boolean {
+    return !!(data.metrics.languages && Object.keys(data.metrics.languages).length > 0);
   }
 
   /**
    * Create the language table element
    * @param data Analysis result data
-   * @returns Table element with language data
+   * @returns Table element with language distribution
    */
   private createLanguageTable(data: AnalysisResult): HTMLElement {
     const table = document.createElement('table');
     
     // Check if we have language data
-    const languages = data.metrics.languages || {};
+    if (!data.metrics.languages || Object.keys(data.metrics.languages).length === 0) {
+      const row = document.createElement('tr');
+      const cell = document.createElement('td');
+      cell.textContent = 'No language data available';
+      cell.style.fontStyle = 'italic';
+      row.appendChild(cell);
+      table.appendChild(row);
+      return table;
+    }
     
-    // If we have language data, display it properly
-    if (Object.keys(languages).length > 0) {
-      Object.entries(languages).forEach(([lang, percent]) => {
-        const row = document.createElement('tr');
-        
-        const langCell = document.createElement('td');
-        langCell.textContent = lang;
-        langCell.style.fontWeight = 'bold';
-        langCell.style.width = '40%';
-        
-        const percentCell = document.createElement('td');
-        percentCell.textContent = percent || '0%';
-        
-        row.appendChild(langCell);
-        row.appendChild(percentCell);
-        table.appendChild(row);
+    // Create header row
+    const headerRow = document.createElement('tr');
+    const languageHeader = document.createElement('th');
+    languageHeader.textContent = 'Language';
+    const percentageHeader = document.createElement('th');
+    percentageHeader.textContent = 'Percentage';
+    headerRow.appendChild(languageHeader);
+    headerRow.appendChild(percentageHeader);
+    table.appendChild(headerRow);
+    
+    // Sort languages by percentage (descending)
+    const sortedLanguages = Object.entries(data.metrics.languages)
+      .sort((a, b) => {
+        const percentA = parseFloat(a[1]);
+        const percentB = parseFloat(b[1]);
+        return percentB - percentA;
       });
-    } else {
-      // If no language data, show a placeholder row
+    
+    // Add language rows
+    sortedLanguages.forEach(([language, percentage]) => {
       const row = document.createElement('tr');
       
       const langCell = document.createElement('td');
-      langCell.textContent = '[Language information not available]';
-      langCell.style.fontWeight = 'normal';
-      langCell.style.width = '100%';
-      langCell.colSpan = 2;
+      langCell.textContent = language;
+      
+      const percentCell = document.createElement('td');
+      percentCell.textContent = percentage;
       
       row.appendChild(langCell);
+      row.appendChild(percentCell);
       table.appendChild(row);
-    }
+    });
     
     return table;
-  }
-
-  /**
-   * Check if there's language data to display
-   * @param data Analysis result data
-   * @returns True if there's language data to display
-   */
-  public static hasData(data: AnalysisResult): boolean {
-    return data.metrics.languages !== undefined && 
-           Object.keys(data.metrics.languages || {}).length > 0;
   }
 
   /**
