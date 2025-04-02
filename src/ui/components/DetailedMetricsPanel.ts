@@ -1,5 +1,5 @@
-import { AnalysisResult } from '../../interfaces/analysis.interface';
-import { IconHelper } from '../helpers/IconHelper';
+import { AnalysisResult } from '@interfaces/analysis.interface';
+import { IconHelper } from '@ui/helpers/IconHelper';
 import { CategoryScoresPanel } from './metrics/CategoryScoresPanel';
 import { InsightsPanel } from './metrics/InsightsPanel';
 import { RepositoryMetricsCard } from './metrics/cards/RepositoryMetricsCard';

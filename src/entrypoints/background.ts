@@ -1,6 +1,6 @@
-import { AnalysisResult } from '~/interfaces/analysis.interface';
-import { STORAGE_KEYS, ACTIONS } from '~/utils/constants';
-import { DEBUG_MODE, debugLog } from '~/utils/config';
+import { AnalysisResult } from '@interfaces/analysis.interface';
+import { STORAGE_KEYS, ACTIONS } from '@utils/constants';
+import { DEBUG_MODE, debugLog } from '@utils/config';
 
 export default defineBackground(() => {
   // Listen for messages from popup or content scripts

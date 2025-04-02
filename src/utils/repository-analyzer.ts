@@ -1,4 +1,4 @@
-import { AnalysisResult, ScoreCategory } from '../interfaces/analysis.interface';
+import { AnalysisResult, ScoreCategory } from '@interfaces/analysis.interface';
 import { 
   RepositoryData, 
   IssueData, 
@@ -7,11 +7,11 @@ import {
   CommitData, 
   ReleaseData, 
   LanguageData 
-} from '../interfaces/repository.interface';
+} from '@interfaces/repository.interface';
 import { GitHubAPI } from './github-api';
 import { ScoreCalculator } from './score-calculator';
 import { BusFactorCalculator } from './bus-factor';
-import { StrengthsAnalyzer, RecommendationsAnalyzer } from '../analysis/insights';
+import { StrengthsAnalyzer, RecommendationsAnalyzer } from '@analysis/insights';
 
 /**
  * Analyzes a GitHub repository and generates a quality score and insights

@@ -1,4 +1,4 @@
-import { StyleService } from '../services/StyleService';
+import { StyleService } from '@ui/services/StyleService';
 
 /**
  * ToggleButton component responsible for the floating action button

@@ -1,4 +1,5 @@
 import { defineConfig } from 'wxt';
+import { resolve } from 'node:path';
 
 export default defineConfig({
   srcDir: 'src',
@@ -30,5 +31,12 @@ export default defineConfig({
       "48": "icon/icon48.png",
       "128": "icon/icon128.png"
     }
+  },
+  alias: {
+    '@analysis': resolve('src/analysis'),
+    '@components': resolve('src/components'),
+    '@interfaces': resolve('src/interfaces'),
+    '@ui': resolve('src/ui'),
+    '@utils': resolve('src/utils')
   }
 });

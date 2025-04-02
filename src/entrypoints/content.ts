@@ -1,8 +1,8 @@
-import { STORAGE_KEYS, ACTIONS } from '~/utils/constants';
-import { DEBUG_MODE, debugLog } from '~/utils/config';
-import { ToggleButton } from '~/ui/components/ToggleButton';
-import { AnalysisPanel } from '~/ui/components/AnalysisPanel';
-import { RepositoryAnalyzer } from '~/utils/repository-analyzer';
+import { STORAGE_KEYS, ACTIONS } from '@utils/constants';
+import { DEBUG_MODE, debugLog } from '@utils/config';
+import { ToggleButton } from '@ui/components/ToggleButton';
+import { AnalysisPanel } from '@ui/components/AnalysisPanel';
+import { RepositoryAnalyzer } from '@utils/repository-analyzer';
 
 export default defineContentScript({
   matches: ['https://github.com/*/*'],

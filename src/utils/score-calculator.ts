@@ -1,4 +1,4 @@
-import { ScoreDetails } from '../interfaces/analysis.interface';
+import { ScoreDetails } from '@interfaces/analysis.interface';
 
 export interface ScoreCalculatorData {
   stars: number;

@@ -1,4 +1,4 @@
-import { AnalysisResult } from '../../../../interfaces/analysis.interface';
+import { AnalysisResult } from '@interfaces/analysis.interface';
 import { CollapsibleCard } from '../CollapsibleCard';
 
 /**

@@ -1,6 +1,6 @@
-import { AnalysisResult } from '~/interfaces/analysis.interface';
-import { STORAGE_KEYS, ACTIONS } from '~/utils/constants';
-import { DEBUG_MODE } from '~/utils/config';
+import { AnalysisResult } from '@interfaces/analysis.interface';
+import { STORAGE_KEYS, ACTIONS } from '@utils/constants';
+import { DEBUG_MODE } from '@utils/config';
 
 document.addEventListener('DOMContentLoaded', function() {
   // Get DOM elements
