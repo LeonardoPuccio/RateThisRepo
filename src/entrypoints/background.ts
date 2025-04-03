@@ -1,9 +1,18 @@
 import { AnalysisResult } from '@interfaces/analysis.interface';
 import { STORAGE_KEYS, ACTIONS } from '@utils/constants';
-import { debugLog, errorLog } from '@utils/config';
+import { DEBUG_MODE, debugLog, errorLog } from '@utils/config';
 import { StorageService } from '@services/StorageService';
+import { StateManager } from '@services/StateManager';
 
 export default defineBackground(() => {
+  debugLog('lifecycle', 'Background script has loaded');
+  
+  // Initialize the state manager
+  const stateManager = StateManager.getInstance();
+  stateManager.initialize().catch(err => {
+    errorLog('lifecycle', 'Failed to initialize state manager:', err);
+  });
+  
   // Handle service worker lifecycle
   browser.runtime.onStartup.addListener(() => {
     debugLog('lifecycle', 'Service worker starting up');
@@ -16,29 +25,29 @@ export default defineBackground(() => {
   });
   
   // Listen for messages from popup or content scripts
-  browser.runtime.onMessage.addListener((message: any, sender, sendResponse): boolean => {
-    debugLog('background', '[Background] Received message:', message.action);
+  browser.runtime.onMessage.addListener((message: any, sender, sendResponse) => {
+    debugLog('messaging', 'Received message:', message.action);
     
     if (message.action === ACTIONS.ANALYZE_REPO) {
       browser.tabs.query({ active: true, currentWindow: true }).then(tabs => {
         if (tabs[0].id) {
           browser.tabs.sendMessage(tabs[0].id, { action: ACTIONS.ANALYZE_REPO })
             .catch(err => {
-              errorLog('background', 'Error sending analyze request to tab:', err);
+              errorLog('messaging', 'Error sending analyze request to tab:', err);
             });
         }
       }).catch(err => {
-        errorLog('background', 'Error querying active tab:', err);
+        errorLog('messaging', 'Error querying active tab:', err);
       });
       
       return true;
     }
     
     if (message.action === ACTIONS.ANALYSIS_COMPLETE) {
-      // Save the analysis result using our storage service
-      StorageService.saveAnalysisResult(message.data as AnalysisResult)
+      // Save the analysis result using our state manager
+      stateManager.saveAnalysisResult(message.data as AnalysisResult)
         .catch(err => {
-          errorLog('background', 'Error saving analysis result:', err);
+          errorLog('storage', 'Error saving analysis result:', err);
         });
       
       return true;
@@ -46,18 +55,18 @@ export default defineBackground(() => {
     
     // Messaging to request current state
     if (message.action === ACTIONS.GET_STATE) {
-      StorageService.getState().then(state => {
+      try {
+        const state = stateManager.getState();
         sendResponse(state);
-      }).catch(err => {
-        errorLog('background', 'Error getting state:', err);
+      } catch (error) {
+        errorLog('messaging', 'Error getting state:', error);
         sendResponse({
           isPanelVisible: false,
           hasAnalysisData: false,
           repoAnalysis: null
         });
-      });
-      
-      return true; // Indicates we'll respond asynchronously
+      }
+      return true;
     }
     
     return false;
@@ -65,7 +74,7 @@ export default defineBackground(() => {
 
   // When the extension is installed or updated
   browser.runtime.onInstalled.addListener(() => {
-    debugLog('background', 'Extension installed/updated');
+    debugLog('lifecycle', 'Extension installed/updated');
     
     // Initialize options if needed
     StorageService.getOptions().then(options => {
@@ -73,15 +82,7 @@ export default defineBackground(() => {
         return StorageService.updateOptions({ showFloatingButton: true });
       }
     }).catch(err => {
-      errorLog('background', 'Error initializing options:', err);
-    });
-    
-    // Ensure state variables are initialized
-    StorageService.getState().then(state => {
-      // State is already initialized by the StorageService with defaults
-      debugLog('storage', 'Initial state:', state);
-    }).catch(err => {
-      errorLog('background', 'Error initializing state:', err);
+      errorLog('lifecycle', 'Error initializing options:', err);
     });
   });
 
@@ -99,7 +100,7 @@ export default defineBackground(() => {
           }
         });
       }).catch(err => {
-        errorLog('background', 'Error querying GitHub tabs:', err);
+        errorLog('messaging', 'Error querying GitHub tabs:', err);
       });
     }
   });

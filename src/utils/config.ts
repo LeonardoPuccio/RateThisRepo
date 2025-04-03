@@ -14,7 +14,8 @@ export const DEBUG_CONFIG = {
   messaging: DEBUG_MODE,    // Message passing debug logs
   background: DEBUG_MODE,   // Background script general logs
   content: DEBUG_MODE,      // Content script general logs
-  performance: DEBUG_MODE   // Performance measurement logs
+  performance: DEBUG_MODE,  // Performance measurement logs
+  state: DEBUG_MODE         // State management logs
 };
 
 // Utility function for component-specific debug logging

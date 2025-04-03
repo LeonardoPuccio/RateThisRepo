@@ -4,18 +4,25 @@ import { ToggleButton } from '@ui/components/ToggleButton';
 import { AnalysisPanel } from '@ui/components/AnalysisPanel';
 import { RepositoryAnalyzer } from '@utils/repository-analyzer';
 import { StorageService } from '@services/StorageService';
+import { StateManager } from '@services/StateManager';
 import { AnalysisResult } from '@interfaces/analysis.interface';
 
 export default defineContentScript({
   matches: ['https://github.com/*/*'],
   
   async main(ctx) {
-    // Local component references
+    debugLog('lifecycle', 'Content script loaded');
+    
+    // Component references
     let analysisPanel: AnalysisPanel | null = null;
     let toggleButton: ToggleButton | null = null;
     
-    // Load initial state
-    const initialState = await StorageService.getState();
+    // Initialize the state manager
+    const stateManager = StateManager.getInstance();
+    await stateManager.initialize();
+    
+    // Get initial state
+    const initialState = stateManager.getState();
     
     /**
      * Display analysis panel with the provided data
@@ -42,129 +49,143 @@ export default defineContentScript({
       }
     }
     
-    // Listen for storage changes
-    const unwatchStorageState = StorageService.watchState((state) => {
-      debugLog('storage', `Storage state changed: ${JSON.stringify(state)}`);
+    // Listen for state events
+    stateManager.on('panel:visibility-changed', (isVisible: boolean) => {
+      debugLog('state', `Panel visibility changed: ${isVisible}`);
       
-      // Update UI based on new state
-      if (state.isPanelVisible && state.repoAnalysis) {
-        displayAnalysisPanel(state.repoAnalysis);
+      if (isVisible) {
+        const state = stateManager.getState();
+        if (state.repoAnalysis) {
+          displayAnalysisPanel(state.repoAnalysis);
+        }
       } else {
         hideAnalysisPanel();
       }
       
-      // Update toggle button state
+      // Update toggle button
       if (toggleButton) {
-        toggleButton.setActive(state.isPanelVisible);
+        toggleButton.setActive(isVisible);
       }
     });
     
-    // Listen for option changes
-    const unwatchOptions = StorageService.watchOptions((options) => {
-      debugLog('storage', `Options changed: ${JSON.stringify(options)}`);
+    stateManager.on('analysis:completed', (data: AnalysisResult) => {
+      debugLog('state', 'Analysis completed, data received');
+      
+      // If panel should be visible, display it
+      const state = stateManager.getState();
+      if (state.isPanelVisible) {
+        displayAnalysisPanel(data);
+      }
+    });
+    
+    stateManager.on('options:changed', (options: { showFloatingButton: boolean }) => {
+      debugLog('state', 'Options changed:', options);
       updateToggleButtonVisibility(options.showFloatingButton);
     });
     
     // Listen for messages from the extension
-    browser.runtime.onMessage.addListener((message, sender, sendResponse): boolean => {
+    browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
       debugLog('messaging', 'Received message:', message.action);
       
       if (message.action === ACTIONS.ANALYZE_REPO) {
         analyzeRepository().then(() => {
           return { success: true };
         }).catch(error => {
+          errorLog('analysis', 'Error analyzing repository:', error);
           return { success: false, error: error.message };
         });
         return true;
       } 
       
       if (message.action === ACTIONS.SHOW_PANEL) {
-        StorageService.getState().then(state => {
-          if (state.repoAnalysis && !state.isPanelVisible) {
-            StorageService.updateUiState(true).then(() => {
-              return { success: true, isPanelVisible: true };
-            }).catch(error => {
-              return { success: false, error: error.message };
-            });
-          } else {
-            return { 
-              success: false, 
-              reason: !state.repoAnalysis ? 'No analysis data' : 'Panel already visible',
-              isPanelVisible: state.isPanelVisible
-            };
-          }
-        }).catch(error => {
-          return { success: false, error: error.message };
-        });
+        const state = stateManager.getState();
+        if (state.repoAnalysis && !state.isPanelVisible) {
+          stateManager.setPanelVisibility(true).then(() => {
+            sendResponse({ success: true, isPanelVisible: true });
+          }).catch(error => {
+            errorLog('ui', 'Error showing panel:', error);
+            sendResponse({ success: false, error: error.message });
+          });
+        } else {
+          const reason = !state.repoAnalysis ? 'No analysis data' : 'Panel already visible';
+          debugLog('ui', `Cannot show panel: ${reason}`);
+          sendResponse({ 
+            success: false, 
+            reason: reason,
+            isPanelVisible: state.isPanelVisible
+          });
+        }
         return true;
       } 
       
       if (message.action === ACTIONS.HIDE_PANEL) {
-        StorageService.getState().then(state => {
-          if (state.isPanelVisible) {
-            StorageService.updateUiState(false).then(() => {
-              return { success: true, isPanelVisible: false };
-            }).catch(error => {
-              return { success: false, error: error.message };
-            });
-          } else {
-            return { 
-              success: false, 
-              reason: 'Panel not visible',
-              isPanelVisible: state.isPanelVisible 
-            };
-          }
-        }).catch(error => {
-          return { success: false, error: error.message };
-        });
+        const state = stateManager.getState();
+        if (state.isPanelVisible) {
+          stateManager.setPanelVisibility(false).then(() => {
+            sendResponse({ success: true, isPanelVisible: false });
+          }).catch(error => {
+            errorLog('ui', 'Error hiding panel:', error);
+            sendResponse({ success: false, error: error.message });
+          });
+        } else {
+          debugLog('ui', 'Cannot hide panel: Panel not visible');
+          sendResponse({ 
+            success: false, 
+            reason: 'Panel not visible',
+            isPanelVisible: state.isPanelVisible 
+          });
+        }
         return true;
       } 
       
       if (message.action === ACTIONS.TOGGLE_PANEL) {
-        StorageService.getState().then(state => {
-          if (state.isPanelVisible) {
-            // Hide panel
-            return StorageService.updateUiState(false).then(() => {
-              return { success: true, isPanelVisible: false };
-            });
-          } else if (state.repoAnalysis) {
-            // Show panel with existing data
-            return StorageService.updateUiState(true).then(() => {
-              return { success: true, isPanelVisible: true };
-            });
-          } else {
-            // No analysis data available
-            return { 
-              success: false, 
-              reason: 'No analysis data',
-              isPanelVisible: false 
-            };
-          }
-        }).catch(error => {
-          return { success: false, error: error.message };
-        });
+        const state = stateManager.getState();
+        if (state.isPanelVisible) {
+          stateManager.setPanelVisibility(false).then(() => {
+            sendResponse({ success: true, isPanelVisible: false });
+          }).catch(error => {
+            errorLog('ui', 'Error hiding panel:', error);
+            sendResponse({ success: false, error: error.message });
+          });
+        } else if (state.repoAnalysis) {
+          stateManager.setPanelVisibility(true).then(() => {
+            sendResponse({ success: true, isPanelVisible: true });
+          }).catch(error => {
+            errorLog('ui', 'Error showing panel:', error);
+            sendResponse({ success: false, error: error.message });
+          });
+        } else {
+          debugLog('ui', 'Cannot toggle panel: No analysis data');
+          sendResponse({ 
+            success: false, 
+            reason: 'No analysis data',
+            isPanelVisible: false 
+          });
+        }
         return true;
       }
       
       if (message.action === ACTIONS.GET_STATE) {
-        StorageService.getState().then(state => {
+        try {
+          const state = stateManager.getState();
           sendResponse(state);
-        }).catch(error => {
+        } catch (error) {
           errorLog('messaging', 'Error getting state:', error);
           sendResponse({
             isPanelVisible: false,
             hasAnalysisData: false,
             repoAnalysis: null
           });
-        });
+        }
         return true;
       }
       
       if (message.action === ACTIONS.OPTIONS_UPDATED) {
         loadOptionsAndApply().then(() => {
-          return { success: true };
+          sendResponse({ success: true });
         }).catch(error => {
-          return { success: false, error: error.message };
+          errorLog('messaging', 'Error updating options:', error);
+          sendResponse({ success: false, error: error.message });
         });
         return true;
       }
@@ -197,8 +218,12 @@ export default defineContentScript({
     
     // Load options from storage and apply them
     async function loadOptionsAndApply(): Promise<void> {
-      const options = await StorageService.getOptions();
-      updateToggleButtonVisibility(options.showFloatingButton);
+      try {
+        const options = await StorageService.getOptions();
+        updateToggleButtonVisibility(options.showFloatingButton);
+      } catch (error) {
+        errorLog('storage', 'Error loading options:', error);
+      }
     }
     
     // Update toggle button visibility based on options
@@ -211,11 +236,8 @@ export default defineContentScript({
           toggleButton.appendTo(document.body);
           
           // Set initial state
-          StorageService.getState().then(state => {
-            toggleButton?.setActive(state.isPanelVisible);
-          }).catch(error => {
-            errorLog('ui', 'Error getting state for toggle button:', error);
-          });
+          const state = stateManager.getState();
+          toggleButton.setActive(state.isPanelVisible);
         }
       } else {
         const buttonContainer = document.getElementById('repo-evaluator-button-container');
@@ -228,32 +250,32 @@ export default defineContentScript({
     
     // Toggle the analysis panel visibility
     function toggleAnalysisPanel(): void {
-      StorageService.getState().then(state => {
-        debugLog('ui', 'Toggle panel called, current visibility:', state.isPanelVisible);
-        
-        if (state.isPanelVisible) {
-          // Hide panel
-          StorageService.updateUiState(false).catch(error => {
-            errorLog('ui', 'Error hiding panel:', error);
-          });
-        } else if (state.repoAnalysis) {
-          // Show panel with existing data
-          StorageService.updateUiState(true).catch(error => {
+      const state = stateManager.getState();
+      debugLog('ui', 'Toggle panel called, current visibility:', state.isPanelVisible);
+      
+      if (state.isPanelVisible) {
+        // Hide panel
+        stateManager.setPanelVisibility(false).catch(error => {
+          errorLog('ui', 'Error hiding panel:', error);
+        });
+      } else {
+        // If we already have results, show them
+        if (state.repoAnalysis) {
+          stateManager.setPanelVisibility(true).catch(error => {
             errorLog('ui', 'Error showing panel:', error);
           });
         } else {
-          // Run analysis if no data exists
+          // Otherwise, run the analysis
           analyzeRepository();
         }
-      }).catch(error => {
-        errorLog('ui', 'Error getting state for toggle:', error);
-      });
+      }
     }
     
     // Main function to analyze the repository
     async function analyzeRepository(): Promise<void> {
       try {
         debugLog('analysis', 'Starting repository analysis');
+        stateManager.notifyAnalysisStarted();
         
         // Extract username and repository name from URL
         const urlParts = window.location.pathname.split('/').filter(Boolean);
@@ -271,21 +293,22 @@ export default defineContentScript({
         
         debugLog('analysis', 'Analysis complete');
         
-        // Save the result using our storage service
-        await StorageService.saveAnalysisResult(result);
+        // Save the result using the state manager
+        await stateManager.saveAnalysisResult(result);
         
         // Send results to background script for cross-tab access
         browser.runtime.sendMessage({
           action: ACTIONS.ANALYSIS_COMPLETE,
           data: result
         }).catch(error => {
-          errorLog('analysis', 'Error sending analysis complete message:', error);
+          errorLog('messaging', 'Error sending analysis complete message:', error);
         });
         
         // Set panel to visible to show the results
-        await StorageService.updateUiState(true);
+        await stateManager.setPanelVisibility(true);
       } catch (error) {
-        errorLog('analysis', "Error analyzing repository:", error);
+        errorLog('analysis', 'Error analyzing repository:', error);
+        stateManager.notifyAnalysisError(error as Error);
         
         // Show an error panel or notification
         if (analysisPanel) {
@@ -336,14 +359,13 @@ export default defineContentScript({
     
     // Use context event listeners to prevent memory leaks
     ctx.addEventListener(window, 'load', () => {
-      debugLog('analysis', 'Window loaded');
+      debugLog('lifecycle', 'Window loaded');
     });
     
     // Clean up when the content script is invalidated
     return () => {
-      // Remove storage watchers
-      unwatchStorageState();
-      unwatchOptions();
+      // Clean up state manager
+      stateManager.destroy();
       
       // Remove UI elements
       if (analysisPanel) {
@@ -357,7 +379,7 @@ export default defineContentScript({
         }
       }
       
-      debugLog('analysis', 'Content script cleaned up');
+      debugLog('lifecycle', 'Content script cleaned up');
     };
   }
 });

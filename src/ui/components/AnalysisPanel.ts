@@ -5,9 +5,10 @@ import { DetailedMetricsPanel } from './DetailedMetricsPanel';
 import { HealthIndicators } from './HealthIndicators';
 import { ScoreDisplay } from './ScoreDisplay';
 import { IconHelper } from '@ui/helpers/IconHelper';
+import { StateManager } from '@services/StateManager';
 
 // Get DEBUG_MODE from config
-import { DEBUG_MODE } from '@utils/config';
+import { DEBUG_MODE, errorLog } from '@utils/config';
 
 /**
  * AnalysisPanel component responsible for showing analysis results
@@ -21,13 +22,18 @@ export class AnalysisPanel {
   private scoreDisplay!: ScoreDisplay;
   private healthIndicators!: HealthIndicators;
   private detailedMetricsPanel!: DetailedMetricsPanel;
+  private closeCallback?: () => void;
   
   /**
    * Create a new analysis panel
+   * @param closeCallback Optional callback that will be called when the panel is closed
    */
-  constructor() {
+  constructor(closeCallback?: () => void) {
     // Initialize StyleService
     StyleService.getInstance().addPanelStyles();
+    
+    // Store close callback
+    this.closeCallback = closeCallback;
     
     // Create panel elements
     this.createPanelElements();
@@ -119,12 +125,15 @@ export class AnalysisPanel {
     
     // Set close button behavior
     closeBtn.onclick = () => {
-      this.hide();
-      // Update toggle button state
-      const toggleButton = document.getElementById('repo-evaluator-toggle');
-      if (toggleButton) {
-        toggleButton.classList.remove('active');
-        toggleButton.title = 'Show Repository Analysis';
+      // First update state in StateManager
+      const stateManager = StateManager.getInstance();
+      stateManager.setPanelVisibility(false).catch(error => {
+        errorLog('ui', 'Error closing panel via X button:', error);
+      });
+      
+      // Call the close callback if provided
+      if (this.closeCallback) {
+        this.closeCallback();
       }
     };
     
