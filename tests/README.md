@@ -1,103 +1,134 @@
-# RateThisRepo Tests
+# RateThisRepo Testing
 
-This directory contains tests for the RateThisRepo Chrome extension.
+This directory contains tests for the RateThisRepo extension using Vitest and WXT's testing utilities.
 
-## Structure
+## Test Types
 
-The test directory structure mirrors the source code structure:
+- **Unit Tests**: Tests for individual components and functions
+- **Integration Tests**: (Future) Tests for interactions between components
+- **E2E Tests**: (Future) End-to-end tests using Playwright
+
+## Directory Structure
 
 ```
 tests/
-├── unit/             # Unit tests for individual components
-│   ├── utils/        # Tests for utility functions
-│   │   ├── repository-analyzer.test.ts
-│   │   ├── score-calculator.test.ts
-│   │   └── github-api.test.ts
-│   ├── analysis/     # Tests for analysis components
-│   │   └── insights/ # Tests for insight generators
-│   │       ├── strengths-analyzer.test.ts
-│   │       └── recommendations-analyzer.test.ts
-│   └── jest.setup.js # Global Chrome API mocking
-├── integration/      # Tests for integration between components (future)
-└── e2e/              # End-to-end tests (future)
+├── setup.ts                      # Global test setup
+├── README.md                     # Documentation
+├── unit/                         # Unit tests
+│   ├── basic.test.ts             # Basic environment verification
+│   ├── analysis/                 # Tests for analysis modules
+│   │   └── insights/
+│   │       └── StrengthsAnalyzer.test.ts
+│   ├── core/                     # Tests for core browser features
+│   │   └── browser-storage.test.ts
+│   ├── services/                 # Tests for service modules
+│   │   └── StorageService.test.ts
+│   ├── ui/                       # Tests for UI components
+│   └── utils/                    # Tests for utility functions
+│       └── repository-analyzer.test.ts
+├── integration/                  # Future integration tests
+│   └── ...
+└── e2e/                          # Future E2E tests
+    └── ...
+```
+
+## Best Practices
+
+### Configuration
+
+- **Use Node environment** instead of JSDOM for simpler, more reliable testing
+- **Be explicit** about which test files to include
+- **Keep configuration minimal** to avoid introducing errors
+- **Set up proper path aliases** that match your source code structure
+
+```ts
+// vitest.config.ts
+import { defineConfig } from 'vitest/config';
+import { WxtVitest } from 'wxt/testing';
+import { resolve } from 'node:path';
+
+export default defineConfig({
+  plugins: [WxtVitest()],
+  test: {
+    environment: 'node',
+    setupFiles: ['./tests/setup.ts'],
+    include: ['./tests/unit/**/*.test.ts'],
+  },
+  resolve: {
+    alias: {
+      '@': resolve(__dirname, './src'),
+      '~': resolve(__dirname, './src'),
+    },
+  },
+});
+```
+
+### Setup File
+
+Keep the setup file simple and focused:
+
+```ts
+// tests/setup.ts
+import { beforeEach } from 'vitest';
+import { fakeBrowser } from 'wxt/testing';
+
+// Reset the fake browser before each test
+beforeEach(() => {
+  fakeBrowser.reset();
+});
+```
+
+### Testing Browser APIs
+
+Use `fakeBrowser` from WXT's testing utilities to test browser APIs:
+
+```ts
+import { fakeBrowser } from 'wxt/testing';
+
+it('should store and retrieve values', async () => {
+  await fakeBrowser.storage.local.set({ key: 'value' });
+  const result = await fakeBrowser.storage.local.get('key');
+  expect(result).toEqual({ key: 'value' });
+});
+```
+
+### Mocking Dependencies
+
+```ts
+import { vi } from 'vitest';
+
+// Mock a service or module
+vi.mock('@/services/SomeService', () => ({
+  SomeService: {
+    method: vi.fn().mockReturnValue('mocked value')
+  }
+}));
 ```
 
 ## Running Tests
 
-To run the tests:
-
 ```bash
-npm run test
+# Run all tests
+pnpm test
+
+# Run tests in watch mode during development
+pnpm test:watch
+
+# Generate coverage report
+pnpm test:coverage
 ```
 
-## Writing Tests
+## Adding New Tests
 
-### Unit Tests
+1. Create a test file in the appropriate test type directory with the same structure as the source file
+2. Import `fakeBrowser` from `wxt/testing` if testing browser APIs
+3. Import components using the same paths as in the source code (`@/path/to/component`)
+4. Write test cases with descriptive names
+5. Reset `fakeBrowser` between tests (automatically done in setup.ts)
 
-Unit tests should:
-- Test a single function or class
-- Mock external dependencies
-- Be fast and independent
-- Follow the Arrange-Act-Assert pattern
+## Common Pitfalls to Avoid
 
-Example:
-
-```typescript
-describe('MyClass', () => {
-  test('myMethod should return expected value', () => {
-    // Arrange
-    const instance = new MyClass();
-    const input = 'test';
-    
-    // Act
-    const result = instance.myMethod(input);
-    
-    // Assert
-    expect(result).toBe('expected value');
-  });
-});
-```
-
-### Chrome API Mocking
-
-The Chrome API is mocked globally in `jest.setup.js`. You can override specific mock implementations in your test files if needed:
-
-```typescript
-// Override chrome.storage.sync.get for this test
-(chrome.storage.sync.get as jest.Mock).mockImplementation((key, callback) => {
-  callback({ customKey: 'customValue' });
-});
-```
-
-### Best Practices
-
-1. **Test behaviors, not implementation details**
-   Test what the code does, not how it does it. Focus on inputs and outputs.
-
-2. **Use descriptive test names**
-   Test names should describe the expected behavior in a readable form.
-
-3. **One assertion per test**
-   When possible, keep tests focused on testing one thing. This makes it easier to identify what failed.
-
-4. **Arrange-Act-Assert pattern**
-   Structure tests with clear separation between setup, execution, and verification.
-
-5. **Use beforeEach for common setup**
-   If multiple tests share the same setup, use `beforeEach` to avoid duplication.
-
-6. **Keep tests independent**
-   Tests should not depend on each other. Each test should be able to run on its own.
-
-7. **Mock external dependencies**
-   Use Jest's mocking capabilities to isolate the code being tested.
-
-## Test Coverage
-
-We aim for high test coverage, but focus on testing critical paths and complex logic rather than simple getters/setters.
-
-To run tests with coverage:
-
-```bash
-npm run test -- --coverage
-```
+- Don't use JSDOM unless you specifically need DOM manipulation
+- Avoid complex configurations with unnecessary options
+- Don't try to mock everything - use the real implementation when possible
+- Don't forget to reset state between tests

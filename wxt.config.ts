@@ -34,7 +34,6 @@ export default defineConfig({
   },
   alias: {
     '@analysis': resolve('src/analysis'),
-    '@components': resolve('src/components'),
     '@interfaces': resolve('src/interfaces'),
     '@services': resolve('src/services'),
     '@ui': resolve('src/ui'),
