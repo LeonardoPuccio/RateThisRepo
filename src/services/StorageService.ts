@@ -5,10 +5,9 @@
  * type safety, and support for MV3 service worker lifecycle.
  */
 
-import { STORAGE_KEYS } from '@utils/constants';
 import { storage } from '#imports';
-import { AnalysisResult } from '@interfaces/analysis.interface';
-import { errorLog, debugLog } from '@utils/config';
+import { AnalysisResult } from '@/interfaces/analysis.interface';
+import { errorLog, debugLog } from '@/utils/config';
 
 /**
  * Define the app state structure

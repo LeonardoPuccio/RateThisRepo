@@ -5,9 +5,9 @@
  * Provides reactive state across service worker lifecycle and components.
  */
 
-import { AnalysisResult } from '@interfaces/analysis.interface';
+import { AnalysisResult } from '@/interfaces/analysis.interface';
 import { StorageService, AppState } from './StorageService';
-import { debugLog, errorLog } from '@utils/config';
+import { debugLog, errorLog } from '@/utils/config';
 
 // Define the available event types
 export type StateEventType = 

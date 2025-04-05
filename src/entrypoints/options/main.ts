@@ -1,5 +1,5 @@
-import { STORAGE_KEYS, ACTIONS } from '@utils/constants';
-import { DEBUG_MODE } from '@utils/config';
+import { STORAGE_KEYS, ACTIONS } from '@/utils/constants';
+import { DEBUG_MODE } from '@/utils/config';
 
 // Elements
 const showFloatingButtonToggle = document.getElementById('show-floating-button') as HTMLInputElement;

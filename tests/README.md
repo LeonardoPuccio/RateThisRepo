@@ -236,7 +236,7 @@ pnpm test:coverage
 
 1. Create a test file in the appropriate test type directory with the same structure as the source file
 2. Import `fakeBrowser` from `wxt/testing` if testing browser APIs
-3. Import components using the same paths as in the source code (`@/path/to/component` or using the aliases `@utils`, `@services`, etc.)
+3. Import components using the same paths as in the source code (`@/path/to/component` or using the aliases `@/utils`, `@/services`, etc.)
 4. Write test cases with descriptive names
 5. Reset `fakeBrowser` between tests (automatically done in setup.ts)
 

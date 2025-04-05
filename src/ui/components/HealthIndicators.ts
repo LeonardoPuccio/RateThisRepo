@@ -1,5 +1,5 @@
-import { AnalysisResult } from '@interfaces/analysis.interface';
-import { IconHelper } from '@ui/helpers/IconHelper';
+import { AnalysisResult } from '@/interfaces/analysis.interface';
+import { IconHelper } from '@/ui/helpers/IconHelper';
 
 /**
  * Component for displaying health indicators

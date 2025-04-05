@@ -1,5 +1,5 @@
-import { ScoreCategory } from '@interfaces/analysis.interface';
-import { IconHelper } from '@ui/helpers/IconHelper';
+import { ScoreCategory } from '@/interfaces/analysis.interface';
+import { IconHelper } from '@/ui/helpers/IconHelper';
 
 /**
  * Panel for displaying category scores with progress bars

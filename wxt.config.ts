@@ -32,13 +32,6 @@ export default defineConfig({
       "128": "icon/icon128.png"
     }
   },
-  alias: {
-    '@analysis': resolve('src/analysis'),
-    '@interfaces': resolve('src/interfaces'),
-    '@services': resolve('src/services'),
-    '@ui': resolve('src/ui'),
-    '@utils': resolve('src/utils')
-  },
   imports: {
     // Configure auto-imports for ESLint
     eslintrc: {

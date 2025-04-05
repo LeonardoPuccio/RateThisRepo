@@ -1,4 +1,4 @@
-import { IconHelper } from '@ui/helpers/IconHelper';
+import { IconHelper } from '@/ui/helpers/IconHelper';
 
 /**
  * Component for displaying the overall score

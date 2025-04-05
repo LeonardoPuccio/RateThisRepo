@@ -1,5 +1,5 @@
-import { AnalysisResult } from '@interfaces/analysis.interface';
-import { IconHelper } from '@ui/helpers/IconHelper';
+import { AnalysisResult } from '@/interfaces/analysis.interface';
+import { IconHelper } from '@/ui/helpers/IconHelper';
 
 /**
  * Panel for displaying strengths and improvement recommendations

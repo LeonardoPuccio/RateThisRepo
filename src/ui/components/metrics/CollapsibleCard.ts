@@ -1,4 +1,4 @@
-import { IconHelper } from '@ui/helpers/IconHelper';
+import { IconHelper } from '@/ui/helpers/IconHelper';
 
 // Define a type for valid icon names based on the IconHelper
 type IconName = keyof typeof IconHelper['ICON_PATHS'];

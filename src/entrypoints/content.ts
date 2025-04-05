@@ -1,11 +1,11 @@
-import { ACTIONS } from '@utils/constants';
-import { debugLog, errorLog } from '@utils/config';
-import { ToggleButton } from '@ui/components/ToggleButton';
-import { AnalysisPanel } from '@ui/components/AnalysisPanel';
-import { RepositoryAnalyzer } from '@utils/repository-analyzer';
-import { StorageService } from '@services/StorageService';
-import { StateManager } from '@services/StateManager';
-import { AnalysisResult } from '@interfaces/analysis.interface';
+import { ACTIONS } from '@/utils/constants';
+import { debugLog, errorLog } from '@/utils/config';
+import { ToggleButton } from '@/ui/components/ToggleButton';
+import { AnalysisPanel } from '@/ui/components/AnalysisPanel';
+import { RepositoryAnalyzer } from '@/utils/repository-analyzer';
+import { StorageService } from '@/services/StorageService';
+import { StateManager } from '@/services/StateManager';
+import { AnalysisResult } from '@/interfaces/analysis.interface';
 
 export default defineContentScript({
   matches: ['https://github.com/*/*'],

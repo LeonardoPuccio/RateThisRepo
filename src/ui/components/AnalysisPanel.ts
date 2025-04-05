@@ -1,14 +1,14 @@
-import { AnalysisResult } from '@interfaces/analysis.interface';
-import { StyleService } from '@ui/services/StyleService';
-import { DragService } from '@ui/services/DragService';
+import { AnalysisResult } from '@/interfaces/analysis.interface';
+import { StyleService } from '@/ui/services/StyleService';
+import { DragService } from '@/ui/services/DragService';
 import { DetailedMetricsPanel } from './DetailedMetricsPanel';
 import { HealthIndicators } from './HealthIndicators';
 import { ScoreDisplay } from './ScoreDisplay';
-import { IconHelper } from '@ui/helpers/IconHelper';
-import { StateManager } from '@services/StateManager';
+import { IconHelper } from '@/ui/helpers/IconHelper';
+import { StateManager } from '@/services/StateManager';
 
 // Get DEBUG_MODE from config
-import { DEBUG_MODE, errorLog } from '@utils/config';
+import { DEBUG_MODE, errorLog } from '@/utils/config';
 
 /**
  * AnalysisPanel component responsible for showing analysis results
