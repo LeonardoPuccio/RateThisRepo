@@ -39,5 +39,18 @@ export default defineConfig({
     '@services': resolve('src/services'),
     '@ui': resolve('src/ui'),
     '@utils': resolve('src/utils')
+  },
+  imports: {
+    // Configure auto-imports for ESLint
+    eslintrc: {
+      enabled: 9
+    },
+    // Add directories to auto-import from
+    dirs: [
+      'src/analysis',
+      'src/services',
+      'src/ui',
+      'src/utils',
+    ]
   }
 });

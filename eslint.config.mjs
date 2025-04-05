@@ -1,14 +1,12 @@
 // eslint.config.mjs
+import autoImports from './.wxt/eslint-auto-imports.mjs';
 import eslint from '@eslint/js';
 import tseslint from 'typescript-eslint';
 import prettierConfig from 'eslint-config-prettier';
 import prettierPlugin from 'eslint-plugin-prettier/recommended';
 
-// Note: We'll use autoImports from WXT once it's generated
-// import autoImports from './.wxt/eslint-auto-imports.mjs';
-
-export default [
-  // autoImports, // Uncomment after first running wxt prepare
+const configs = [
+  autoImports,
   eslint.configs.recommended,
   ...tseslint.configs.recommended,
   {
@@ -39,3 +37,5 @@ export default [
   prettierConfig,
   prettierPlugin,
 ];
+
+export default configs;
