@@ -1,5 +1,6 @@
 import { AnalysisResult } from '@/interfaces/analysis.interface';
 import { IconHelper } from '@/ui/helpers/IconHelper';
+import { debugLog } from '@/utils/config';
 
 /**
  * Panel for displaying strengths and improvement recommendations
@@ -15,6 +16,7 @@ export class InsightsPanel {
   constructor(debugMode = false) {
     this.isDebugMode = debugMode;
     this.container = document.createElement('div');
+    this.container.className = 'mt-8';
   }
 
   /**
@@ -24,34 +26,47 @@ export class InsightsPanel {
   public setData(data: AnalysisResult): void {
     // Clear container
     this.container.innerHTML = '';
-    
-    // Create section header
-    const header = document.createElement('h2');
-    header.innerHTML = `${IconHelper.getSvgIconString('lightbulb')} Key Insights`;
+
+    // Create section header with Tailwind classes
+    const header = document.createElement('h3');
+    header.className = 'flex items-center text-lg font-semibold mb-4 text-black';
+
+    // Fix SVG rendering in header
+    const svgIcon = IconHelper.getSvgIconString('lightbulb');
+    const headerContent = document.createElement('span');
+    headerContent.className = 'ml-2';
+    headerContent.textContent = 'Key Insights';
+
+    // Add SVG and text to header
+    header.innerHTML = svgIcon;
+    header.appendChild(headerContent);
+
     this.container.appendChild(header);
-    
+
     // Debug logging
-    this.logDebug("Strengths count:", (data.strengths || []).length);
-    this.logDebug("Recommendations count:", (data.recommendations || []).length);
-    
-    // Create a two-column layout for strengths and improvements
+    debugLog('ui', 'Strengths count:', (data.strengths || []).length);
+    debugLog('ui', 'Recommendations count:', (data.recommendations || []).length);
+
+    // Create a two-column layout for strengths and improvements with Tailwind flex
     const insightsContainer = document.createElement('div');
-    insightsContainer.className = 'insights-container';
-    
+    insightsContainer.className = 'flex flex-col md:flex-row gap-4';
+
     // Generate default strengths if none are provided or empty
-    const strengths = (data.strengths && data.strengths.length > 0)
-      ? data.strengths 
-      : this.generateDefaultStrengths(data);
-    
+    const strengths =
+      data.strengths && data.strengths.length > 0
+        ? data.strengths
+        : this.generateDefaultStrengths(data);
+
     // Generate default recommendations if none are provided or empty
-    const recommendations = (data.recommendations && data.recommendations.length > 0)
-      ? data.recommendations 
-      : this.generateDefaultRecommendations(data);
-    
+    const recommendations =
+      data.recommendations && data.recommendations.length > 0
+        ? data.recommendations
+        : this.generateDefaultRecommendations(data);
+
     // Add both columns to the container
     insightsContainer.appendChild(this.createStrengthsColumn(strengths));
     insightsContainer.appendChild(this.createImprovementsColumn(recommendations));
-    
+
     this.container.appendChild(insightsContainer);
   }
 
@@ -61,14 +76,14 @@ export class InsightsPanel {
    * @returns Array of default strength messages
    */
   private generateDefaultStrengths(data: AnalysisResult): string[] {
-    this.logDebug("Generating default strengths");
+    debugLog('ui', 'Generating default strengths');
 
     // Instead of generating potentially misleading defaults,
     // provide a message that indicates these are placeholders
     return [
-      "⚠️ [Placeholder] This repository has basic GitHub features set up",
-      "⚠️ [Placeholder] Documentation exists to some degree",
-      "⚠️ [Placeholder] Repository structure follows standard practices"
+      '⚠️ [Placeholder] This repository has basic GitHub features set up',
+      '⚠️ [Placeholder] Documentation exists to some degree',
+      '⚠️ [Placeholder] Repository structure follows standard practices',
     ];
   }
 
@@ -78,13 +93,13 @@ export class InsightsPanel {
    * @returns Array of default recommendation messages
    */
   private generateDefaultRecommendations(data: AnalysisResult): string[] {
-    this.logDebug("Generating default recommendations");
+    debugLog('ui', 'Generating default recommendations');
 
     // Instead of generating potentially misleading defaults,
     // provide a message that indicates these are placeholders
     return [
-      "⚠️ [Placeholder] Consider enhancing documentation for better user experience",
-      "⚠️ [Placeholder] Improve project sustainability with more community engagement"
+      '⚠️ [Placeholder] Consider enhancing documentation for better user experience',
+      '⚠️ [Placeholder] Improve project sustainability with more community engagement',
     ];
   }
 
@@ -94,48 +109,64 @@ export class InsightsPanel {
    * @returns Strengths column element
    */
   private createStrengthsColumn(strengths: string[]): HTMLElement {
-    // Create column container
+    // Create column container with Tailwind classes
     const strengthsColumn = document.createElement('div');
-    strengthsColumn.className = 'insights-column';
-    
-    // Create card container
+    strengthsColumn.className = 'flex-1';
+
+    // Create card container with Tailwind classes
     const strengthsCard = document.createElement('div');
-    strengthsCard.className = 'card';
-    
-    // Create card header with icon
+    strengthsCard.className =
+      'bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden';
+
+    // Create card header with icon using Tailwind classes
     const strengthsHeader = document.createElement('div');
-    strengthsHeader.className = 'card-header success';
-    strengthsHeader.innerHTML = `${IconHelper.getSvgIconString('check')} Strengths`;
+    strengthsHeader.className = 'flex items-center px-4 py-3 bg-green-50 border-b border-gray-200';
+
+    // Add icon with proper color
+    const iconSpan = document.createElement('span');
+    iconSpan.className = 'text-green-600 mr-2';
+    iconSpan.innerHTML = IconHelper.getSvgIconString('check');
+
+    // Add header text
+    const headerText = document.createElement('span');
+    headerText.className = 'font-medium text-black';
+    headerText.textContent = 'Strengths';
+
+    // Assemble header
+    strengthsHeader.appendChild(iconSpan);
+    strengthsHeader.appendChild(headerText);
     strengthsCard.appendChild(strengthsHeader);
-    
-    // Create card body
+
+    // Create card body with Tailwind classes
     const strengthsBody = document.createElement('div');
-    strengthsBody.className = 'card-body';
-    
-    // Create and populate the list
+    strengthsBody.className = 'px-4 py-3 text-black';
+
+    // Create and populate the list with Tailwind classes
     const strengthsList = document.createElement('ul');
-    
+    strengthsList.className = 'list-disc pl-5 space-y-2';
+
     // Ensure we always have content
-    const displayStrengths = strengths && strengths.length > 0 
-      ? strengths 
-      : ["⚠️ [No strengths identified] Analysis could not determine specific strengths"];
-    
-    // Debug logging
-    this.logDebug("Creating strengths list with:", displayStrengths);
-    
+    const displayStrengths =
+      strengths && strengths.length > 0
+        ? strengths
+        : ['⚠️ [No strengths identified] Analysis could not determine specific strengths'];
+
+    debugLog('ui', 'Creating strengths list with:', displayStrengths);
+
     // Add each strength as a list item with innerHTML to preserve emojis
     displayStrengths.forEach(strength => {
-      this.logDebug("Adding strength:", strength);
+      debugLog('ui', 'Adding strength:', strength);
       const item = document.createElement('li');
+      item.className = 'text-gray-800';
       item.innerHTML = strength;
       strengthsList.appendChild(item);
     });
-    
+
     // Assemble the card
     strengthsBody.appendChild(strengthsList);
     strengthsCard.appendChild(strengthsBody);
     strengthsColumn.appendChild(strengthsCard);
-    
+
     return strengthsColumn;
   }
 
@@ -145,64 +176,66 @@ export class InsightsPanel {
    * @returns Improvements column element
    */
   private createImprovementsColumn(recommendations: string[]): HTMLElement {
-    // Create column container
+    // Create column container with Tailwind classes
     const improvementsColumn = document.createElement('div');
-    improvementsColumn.className = 'insights-column';
-    
-    // Create card container
+    improvementsColumn.className = 'flex-1';
+
+    // Create card container with Tailwind classes
     const improvementsCard = document.createElement('div');
-    improvementsCard.className = 'card';
-    
-    // Create card header with icon
+    improvementsCard.className =
+      'bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden';
+
+    // Create card header with icon using Tailwind classes
     const improvementsHeader = document.createElement('div');
-    improvementsHeader.className = 'card-header warning';
-    improvementsHeader.innerHTML = `${IconHelper.getSvgIconString('warning')} Areas for Improvement`;
+    improvementsHeader.className =
+      'flex items-center px-4 py-3 bg-yellow-50 border-b border-gray-200';
+
+    // Add icon with proper color
+    const iconSpan = document.createElement('span');
+    iconSpan.className = 'text-yellow-600 mr-2';
+    iconSpan.innerHTML = IconHelper.getSvgIconString('warning');
+
+    // Add header text
+    const headerText = document.createElement('span');
+    headerText.className = 'font-medium text-black';
+    headerText.textContent = 'Areas for Improvement';
+
+    // Assemble header
+    improvementsHeader.appendChild(iconSpan);
+    improvementsHeader.appendChild(headerText);
     improvementsCard.appendChild(improvementsHeader);
-    
-    // Create card body
+
+    // Create card body with Tailwind classes
     const improvementsBody = document.createElement('div');
-    improvementsBody.className = 'card-body';
-    
-    // Create and populate the list
+    improvementsBody.className = 'px-4 py-3 text-black';
+
+    // Create and populate the list with Tailwind classes
     const improvementsList = document.createElement('ul');
-    
+    improvementsList.className = 'list-disc pl-5 space-y-2';
+
     // Ensure we always have content
-    const displayRecommendations = recommendations && recommendations.length > 0 
-      ? recommendations 
-      : ["⚠️ [No recommendations] Analysis could not determine specific areas for improvement"];
-    
-    // Debug logging
-    this.logDebug("Creating improvements list with:", displayRecommendations);
-    
+    const displayRecommendations =
+      recommendations && recommendations.length > 0
+        ? recommendations
+        : ['⚠️ [No recommendations] Analysis could not determine specific areas for improvement'];
+
+    debugLog('ui', 'Creating improvements list with:', displayRecommendations);
+
     // Add each recommendation as a list item with innerHTML to preserve emojis
     displayRecommendations.forEach(rec => {
-      this.logDebug("Adding recommendation:", rec);
+      debugLog('ui', 'Adding recommendation:', rec);
       const item = document.createElement('li');
+      item.className = 'text-gray-800';
       item.innerHTML = rec;
       improvementsList.appendChild(item);
     });
-    
+
     // Assemble the card
     improvementsBody.appendChild(improvementsList);
     improvementsCard.appendChild(improvementsBody);
     improvementsColumn.appendChild(improvementsCard);
-    
-    return improvementsColumn;
-  }
 
-  /**
-   * Conditionally log debug messages
-   * @param message The message to log
-   * @param data Optional data to log
-   */
-  private logDebug(message: string, data?: any): void {
-    if (this.isDebugMode) {
-      if (data) {
-        console.log(message, data);
-      } else {
-        console.log(message);
-      }
-    }
+    return improvementsColumn;
   }
 
   /**

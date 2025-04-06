@@ -1,131 +1,217 @@
-import { StyleService } from '@/ui/services/StyleService';
+import {
+  createShadowRootUi,
+  ShadowRootContentScriptUi,
+} from 'wxt/utils/content-script-ui/shadow-root';
+import { ContentScriptContext } from 'wxt/utils/content-script-context';
+import { debugLog, errorLog } from '@/utils/config';
+import { ToggleButtonMountData } from '@/ui/interfaces/ui-interfaces';
+import { BUTTON_CLASSES } from '@/ui/styles/button-animations';
 
 /**
  * ToggleButton component responsible for the floating action button
  * that toggles the analysis panel
  */
 export class ToggleButton {
-  private buttonContainer: HTMLDivElement;
-  private button: HTMLButtonElement;
-  private tooltip: HTMLDivElement;
-  
+  private ui: ShadowRootContentScriptUi<ToggleButtonMountData> | null = null;
+  private button!: HTMLButtonElement;
+  private tooltip!: HTMLDivElement;
+  private toggleCallback: () => void;
+  private ctx: ContentScriptContext;
+  private overlay: HTMLElement | null = null;
+
   /**
    * Create a new toggle button
    * @param toggleCallback Function to call when button is clicked
+   * @param ctx ContentScriptContext from WXT, required for proper operation
    */
-  constructor(toggleCallback: () => void) {
-    // Initialize StyleService
-    StyleService.getInstance().addToggleButtonStyles();
-    
-    // Create button container
-    this.buttonContainer = document.createElement('div');
-    this.buttonContainer.id = 'repo-evaluator-button-container';
-    this.buttonContainer.style.cssText = `
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      z-index: 9999;
-    `;
-    
-    // Create button
-    this.button = document.createElement('button');
-    this.button.id = 'repo-evaluator-toggle';
-    this.button.innerHTML = '📊';
-    this.button.title = 'Analyze Repository';
-    this.button.style.cssText = `
-      width: 50px;
-      height: 50px;
-      border-radius: 50%;
-      background-color: #2ea44f;
-      color: white;
-      border: none;
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-      cursor: pointer;
-      font-size: 20px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      animation: pulse 2s infinite;
-      transition: all 0.3s ease;
-    `;
-    
-    // Add tooltip that appears on hover
-    this.tooltip = document.createElement('div');
-    this.tooltip.id = 'repo-evaluator-tooltip';
-    this.tooltip.textContent = 'Analyze Repository';
-    this.tooltip.style.cssText = `
-      position: absolute;
-      top: -40px;
-      right: 0;
-      background-color: #24292e;
-      color: white;
-      padding: 5px 10px;
-      border-radius: 4px;
-      font-size: 12px;
-      opacity: 0;
-      transition: opacity 0.3s;
-      pointer-events: none;
-      white-space: nowrap;
-    `;
-    
-    this.setupEventListeners(toggleCallback);
-    
-    // Append elements
-    this.buttonContainer.appendChild(this.tooltip);
-    this.buttonContainer.appendChild(this.button);
+  constructor(toggleCallback: () => void, ctx: ContentScriptContext) {
+    this.toggleCallback = toggleCallback;
+    this.ctx = ctx;
+    debugLog('ui', 'Creating ToggleButton with shadow DOM and Tailwind CSS');
   }
-  
+
   /**
-   * Set up event listeners for the button
-   * @param toggleCallback Function to call when button is clicked
+   * Initialize the UI components
+   * Must be called before mounting the button
    */
-  private setupEventListeners(toggleCallback: () => void): void {
-    // Show/hide tooltip on hover
-    this.button.onmouseover = () => {
-      this.tooltip.style.opacity = '1';
-      this.tooltip.textContent = this.button.classList.contains('active') 
-        ? 'Hide Repository Analysis' 
-        : 'Analyze Repository';
-    };
-    
-    this.button.onmouseout = () => {
-      this.tooltip.style.opacity = '0';
-    };
-    
-    // Set click handler
-    this.button.onclick = toggleCallback;
-  }
-  
-  /**
-   * Add the button to the DOM
-   */
-  public appendTo(parent: HTMLElement = document.body): void {
-    // Check if button already exists
-    if (document.getElementById('repo-evaluator-toggle')) {
-      return;
+  public async initialize(): Promise<void> {
+    try {
+      // Create a small overlay just for the button area
+      this.overlay = document.createElement('div');
+      this.overlay.style.position = 'fixed';
+      this.overlay.style.bottom = '0';
+      this.overlay.style.right = '0';
+      this.overlay.style.width = '100px'; // Just enough to cover the button area
+      this.overlay.style.height = '100px';
+      this.overlay.style.pointerEvents = 'none'; // Let events pass through by default
+      this.overlay.style.zIndex = '9998'; // Just below our UI
+
+      // Add the overlay to the document
+      document.body.appendChild(this.overlay);
+
+      // Create the shadow root UI using WXT's API
+      this.ui = await createShadowRootUi(this.ctx, {
+        name: 'repo-evaluator-button',
+        position: 'inline',
+        anchor: 'body',
+        mode: 'open',
+        onMount: (container, shadow, shadowHost) => {
+          debugLog('ui', 'Mounting ToggleButton UI in shadow DOM');
+
+          // Add component class to the container for proper styling in shadow DOM
+          container.classList.add(BUTTON_CLASSES.COMPONENT);
+
+          // Apply fixed positioning to the shadow host element
+          // Use overflow: visible to ensure animation isn't cut off
+          shadowHost.style.position = 'fixed';
+          shadowHost.style.bottom = '20px';
+          shadowHost.style.right = '20px';
+          shadowHost.style.zIndex = '9999';
+          shadowHost.style.overflow = 'visible';
+
+          // Add padding to shadow host to accommodate animation expansion
+          shadowHost.style.padding = '10px';
+
+          // Create button container with padding for animation expansion
+          const buttonContainer = document.createElement('div');
+          buttonContainer.className = `relative ${BUTTON_CLASSES.CONTAINER}`;
+          buttonContainer.style.pointerEvents = 'auto'; // Make sure button captures events
+
+          // Create tooltip with our standardized classes
+          this.tooltip = document.createElement('div');
+          this.tooltip.className = BUTTON_CLASSES.TOOLTIP;
+          this.tooltip.textContent = 'Analyze Repository';
+          this.tooltip.style.top = '-40px'; // Position tooltip above button
+          this.tooltip.style.right = '0';
+
+          // Create the button element using Tailwind classes + our custom classes
+          this.button = document.createElement('button');
+          this.button.className = [
+            // Tailwind utility classes
+            'w-12 h-12 text-xl rounded-full border-none cursor-pointer',
+            'flex items-center justify-center text-white',
+            'transition-all duration-200',
+            // Our custom animation/state class
+            BUTTON_CLASSES.DEFAULT,
+          ].join(' ');
+
+          this.button.innerHTML = '📊';
+          this.button.setAttribute('aria-label', 'Analyze Repository');
+
+          // Add event listeners
+          this.button.addEventListener('click', this.handleClick.bind(this));
+          this.button.addEventListener('mouseover', this.showTooltip.bind(this));
+          this.button.addEventListener('mouseout', this.hideTooltip.bind(this));
+
+          // Critical: Add wheel event handler to the button container
+          buttonContainer.addEventListener(
+            'wheel',
+            e => {
+              // Always stop propagation and prevent default for button area
+              e.stopPropagation();
+              e.preventDefault();
+            },
+            { passive: false }
+          );
+
+          // Assemble components
+          buttonContainer.appendChild(this.tooltip);
+          buttonContainer.appendChild(this.button);
+          container.appendChild(buttonContainer);
+
+          // Return DOM references for later cleanup
+          return {
+            container,
+            button: this.button,
+            tooltip: this.tooltip,
+            buttonContainer,
+          };
+        },
+      });
+
+      debugLog('ui', 'ToggleButton UI initialization complete');
+    } catch (error) {
+      errorLog('ui', 'Error initializing ToggleButton:', error);
+      throw error;
     }
-    
-    parent.appendChild(this.buttonContainer);
   }
-  
+
   /**
-   * Set the active state of the button
-   * @param active Whether the button should be in active state
+   * Mount the button to the DOM
+   */
+  public async mount(): Promise<void> {
+    if (!this.ui) {
+      await this.initialize();
+    }
+
+    // Mount the UI using WXT's mount method
+    try {
+      this.ui?.mount();
+      debugLog('ui', 'ToggleButton mounted successfully');
+    } catch (error) {
+      errorLog('ui', 'Error mounting ToggleButton UI:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Remove the button from the DOM
+   */
+  public remove(): void {
+    if (this.ui) {
+      this.ui.remove();
+
+      // Remove the overlay
+      if (this.overlay && this.overlay.parentNode) {
+        this.overlay.parentNode.removeChild(this.overlay);
+        this.overlay = null;
+      }
+
+      this.ui = null;
+    }
+  }
+
+  /**
+   * Set whether the button should appear active (panel is open)
+   * @param active Whether button should be active
    */
   public setActive(active: boolean): void {
-    if (active) {
-      this.button.classList.add('active');
-      this.button.title = 'Hide Repository Analysis';
-    } else {
-      this.button.classList.remove('active');
-      this.button.title = 'Analyze Repository';
+    if (this.button) {
+      // Make sure to toggle classes correctly for animation using our constants
+      if (active) {
+        this.button.classList.remove(BUTTON_CLASSES.DEFAULT);
+        this.button.classList.add(BUTTON_CLASSES.ACTIVE);
+      } else {
+        this.button.classList.remove(BUTTON_CLASSES.ACTIVE);
+        this.button.classList.add(BUTTON_CLASSES.DEFAULT);
+      }
     }
   }
-  
+
   /**
-   * Toggle the active state of the button
+   * Show the tooltip
    */
-  public toggleActive(): void {
-    this.setActive(!this.button.classList.contains('active'));
+  private showTooltip(): void {
+    if (this.tooltip) {
+      this.tooltip.classList.add(BUTTON_CLASSES.TOOLTIP_VISIBLE);
+    }
+  }
+
+  /**
+   * Hide the tooltip
+   */
+  private hideTooltip(): void {
+    if (this.tooltip) {
+      this.tooltip.classList.remove(BUTTON_CLASSES.TOOLTIP_VISIBLE);
+    }
+  }
+
+  /**
+   * Handle button click
+   */
+  private handleClick(): void {
+    if (this.toggleCallback) {
+      this.toggleCallback();
+    }
   }
 }

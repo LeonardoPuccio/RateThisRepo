@@ -59,6 +59,57 @@ npm run compile
 4. Click "Load unpacked"
 5. Select the `.output/chrome-mv3` folder from this project
 
+## Styling Guidelines
+
+The extension uses TailwindCSS integrated with Shadow DOM for isolated styling. This approach prevents our styles from affecting the GitHub page and vice versa.
+
+### CSS Class Naming Convention
+
+- Use Tailwind utility classes for general styling (spacing, colors, layout)
+- Use `rtr-` prefixed classes for custom behaviors and components
+- Example: `<div class="flex items-center p-2 rtr-bg-success-light">...</div>`
+
+### Shadow DOM Integration
+
+- All UI components use WXT's `createShadowRootUi` with `cssInjectionMode: 'ui'`
+- Add `BUTTON_CLASSES.COMPONENT` to container elements for base styling
+- Set `overflow: visible` on shadow hosts to prevent animation clipping
+
+### Status Classes
+
+Use these semantic classes for consistent color coding:
+
+| Status | Text | Background | Light Background | Border |
+|--------|------|------------|------------------|--------|
+| Success | `rtr-success` | `rtr-bg-success` | `rtr-bg-success-light` | `rtr-border-success` |
+| Warning | `rtr-warning` | `rtr-bg-warning` | `rtr-bg-warning-light` | `rtr-border-warning` |
+| Error | `rtr-error` | `rtr-bg-error` | `rtr-bg-error-light` | `rtr-border-error` |
+
+### Animation Classes
+
+- `rtr-animate-pulse`: For pulsing animations
+- `rtr-button-active`: For active toggle state
+- `rtr-button-default`: For default toggle state
+
+### Component Styling
+
+- `rtr-component`: Base class for all containers in Shadow DOM
+- `rtr-button-container`: Container for buttons with proper spacing for animations
+- `rtr-tooltip`: Class for tooltips with standard styling
+- `rtr-bar`: Progress bar with transitions
+
+### How to Use
+
+Import the constants from `ui/styles/button-animations.ts`:
+
+```typescript
+import { BUTTON_CLASSES } from '@/ui/styles/button-animations';
+
+// In your component:
+container.classList.add(BUTTON_CLASSES.COMPONENT);
+button.classList.add(BUTTON_CLASSES.DEFAULT);
+```
+
 ## Features
 
 - Analyzes GitHub repositories to provide quality metrics
