@@ -1,0 +1,59 @@
+/* Single consolidated Tailwind CSS file for RateThisRepo extension */
+@import "tailwindcss";
+
+/* Reset the shadow host if needed */
+:host {
+  all: initial;
+}
+
+/* Bar style classes for progress indicators */
+.bar {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.bar.success { background-color: #2ea44f; }
+.bar.warning { background-color: #f5a623; }
+.bar.error { background-color: #d73a49; }
+
+/* Score circle styling */
+.score-circle {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-width: 3px;
+  border-style: solid;
+}
+
+.score-circle-outline.success { border-color: #2ea44f; }
+.score-circle-outline.warning { border-color: #f5a623; }
+.score-circle-outline.error { border-color: #d73a49; }
+
+.score-circle-value.success { color: #2ea44f; }
+.score-circle-value.warning { color: #f5a623; }
+.score-circle-value.error { color: #d73a49; }
+
+/* Health indicator styles */
+.indicator.success { background-color: rgba(46, 164, 79, 0.1); }
+.indicator.success svg { color: #2ea44f; }
+
+.indicator.warning { background-color: rgba(245, 166, 35, 0.1); }
+.indicator.warning svg { color: #f5a623; }
+
+.indicator.error { background-color: rgba(215, 58, 73, 0.1); }
+.indicator.error svg { color: #d73a49; }
+
+/* Tooltip hover effect */
+.tooltip-container:hover .tooltip-text {
+  visibility: visible;
+  opacity: 1;
+}
+
+/* Card header styling */
+.card-header.success { background-color: rgba(46, 164, 79, 0.1); }
+.card-header.warning { background-color: rgba(245, 166, 35, 0.1); }
+.card-header.error { background-color: rgba(215, 58, 73, 0.1); }

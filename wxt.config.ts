@@ -1,5 +1,5 @@
 import { defineConfig } from 'wxt';
-import { resolve } from 'node:path';
+import tailwindcss from '@tailwindcss/vite';
 
 export default defineConfig({
   srcDir: 'src',
@@ -30,12 +30,20 @@ export default defineConfig({
       "16": "icon/icon16.png",
       "48": "icon/icon48.png",
       "128": "icon/icon128.png"
-    }
+    },
+    web_accessible_resources: [
+      {
+        resources: [
+          "assets/tailwind.css",
+        ],
+        matches: ["<all_urls>"]
+      }
+    ]
   },
   imports: {
     // Configure auto-imports for ESLint
     eslintrc: {
-      enabled: 9
+      enabled: true,
     },
     // Add directories to auto-import from
     dirs: [
@@ -44,5 +52,14 @@ export default defineConfig({
       'src/ui',
       'src/utils',
     ]
-  }
+  },
+  vite: () => ({
+    plugins: [tailwindcss()],
+    // Add enhanced CSS support for Shadow DOM
+    css: {
+      postcss: {
+        plugins: [],
+      },
+    },
+  }),
 });
