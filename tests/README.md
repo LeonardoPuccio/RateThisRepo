@@ -1,394 +1,254 @@
-# RateThisRepo Testing
+# RateThisRepo Testing Documentation
 
-This directory contains tests for the RateThisRepo extension using Vitest and WXT's testing utilities.
+This document provides an overview of the testing strategy for the RateThisRepo extension, particularly focusing on the WXT migration-related components.
 
-## Test Types
+## Test Structure
 
-- **Unit Tests**: Tests for individual components and functions
-- **Integration Tests**: (Future) Tests for interactions between components
-- **E2E Tests**: (Future) End-to-end tests using Playwright
-
-## Directory Structure
+The tests are organized following the project's structure:
 
 ```
 tests/
-├── setup.ts                       # Global test setup
-├── README.md                      # Documentation
-├── unit/                          # Unit tests
-│   ├── analysis/                  # Tests for analysis modules
-│   │   └── insights/
-│   │       └── StrengthsAnalyzer.test.ts
-│   ├── basic.test.ts              # Basic environment verification
-│   ├── core/                      # Tests for core browser features
-│   │   └── browser-storage.test.ts
+├── setup.ts                        # Test setup and environment configuration
+├── unit/                           # Unit tests for individual components
+│   ├── analysis/                   # Tests for analysis modules
+│   ├── core/                       # Tests for core functionality 
 │   ├── entrypoints/               # Tests for extension entrypoints
-│   │   ├── background.test.ts     # Tests for background script
-│   │   └── content.test.ts        # Tests for content script
-│   ├── services/                  # Tests for service modules
-│   │   ├── MessageService.test.ts # Tests for messaging service
-│   │   ├── StateManager.test.ts   # Tests for state management
-│   │   └── StorageService.test.ts # Tests for storage service
-│   ├── ui/                        # Tests for UI components
-│   │   └── components/
-│   │       ├── AnalysisPanel.test.ts  # Tests for the analysis panel
-│   │       └── ToggleButton.test.ts   # Tests for the toggle button
-│   └── utils/                     # Tests for utility functions
-│       └── repository-analyzer.test.ts
-├── integration/                   # Future integration tests
-│   └── ...
-└── e2e/                           # Future E2E tests
-    └── ...
+│   ├── services/                   # Tests for service modules
+│   │   ├── MessageService.test.ts  # Tests for the message passing service
+│   │   ├── StateManager.test.ts    # Tests for state management
+│   │   ├── StorageService.test.ts  # Basic storage service tests
+│   │   └── StorageServiceLifecycle.test.ts # Advanced lifecycle tests for storage
+│   ├── ui/                         # Tests for UI components
+│   │   ├── components/             # Tests for individual UI components
+│   │   │   ├── AnalysisPanel.test.ts  # Tests for the main analysis panel
+│   │   │   └── ToggleButton.test.ts   # Tests for the toggle button
+│   │   ├── integration/            # Tests for UI integration aspects
+│   │   │   ├── ShadowDomEvents.test.ts   # Tests for Shadow DOM event isolation
+│   │   │   └── ShadowDomTailwind.test.ts # Tests for Shadow DOM + Tailwind integration
+│   │   └── ThemeCompatibility.test.ts # Tests for GitHub theme compatibility
+│   └── utils/                      # Tests for utility functions
+└── basic.test.ts                   # Basic smoke tests
 ```
 
-## Test Coverage
+## Key Test Areas
 
-Current test coverage includes:
+### 1. Shadow DOM Integration
 
-### Core Services
-- **StateManager**: Tests for state persistence, event system, and lifecycle management
-- **StorageService**: Tests for storage operations and type safety
-- **MessageService**: Tests for messaging architecture and handler management
+The Shadow DOM integration tests verify that:
+- Shadow DOM is properly set up using WXT's `createShadowRootUi`
+- Tailwind CSS classes are correctly applied within Shadow DOM
+- Events are properly isolated to prevent leakage
+- Wheel and scroll events are handled correctly for overlay UIs
+- Content script context is used properly to prevent memory leaks
 
-### UI Components
-- **ToggleButton**: Tests for button functionality, state management, and user interaction
-- **AnalysisPanel**: Tests for panel rendering, data handling, and user interaction
+### 2. Service Worker Lifecycle
 
-### Entrypoints
-- **Background Script**: Tests for messaging handling, state management, and service worker lifecycle
-- **Content Script**: Tests for UI initialization, message handling, and DOM interaction
+The service worker lifecycle tests ensure:
+- State is persisted across service worker terminations
+- Storage watchers are properly registered and cleaned up
+- Error handling works correctly for storage operations
+- The extension can handle large data objects without performance issues
+- Lifecycle events (startup, suspend) are handled properly
 
-### Utils
-- **RepositoryAnalyzer**: Tests for GitHub API integration and analysis logic
+### 3. Theme Compatibility
 
-## Best Practices
+Theme compatibility tests verify that:
+- UI components work correctly with GitHub's light theme
+- UI components are compatible with dark theme
+- UI components maintain accessibility with high contrast theme
+- Responsive layout works across different screen sizes
 
-### Test Environment
+### 4. State Management
 
-WXT and Vitest are configured to use the Node environment for all tests. This provides:
-
-- Faster test execution
-- Better compatibility with browser-like APIs
-- Simplified mocking approach
-- Consistent behavior across all test types
-
-### Test Setup
-
-Keep the setup file simple and focused:
-
-```ts
-// tests/setup.ts
-import { beforeEach } from 'vitest';
-import { fakeBrowser } from 'wxt/testing';
-
-// Reset the fake browser before each test
-beforeEach(() => {
-  fakeBrowser.reset();
-});
-```
-
-### Type Safety in Tests
-
-Maintain strong typing in your tests to catch errors at compile time:
-
-```typescript
-// Define test-specific interfaces
-interface TestMessage {
-  action: string;
-  data?: unknown;
-}
-
-// Create factory functions that return properly typed objects
-function createTestMessage(action: string, data?: unknown): TestMessage {
-  return { action, data };
-}
-
-// Use type assertions sparingly and only when necessary
-const testMessage = createTestMessage(ACTIONS.GET_STATE) as ExtensionMessage;
-```
-
-### Testing Browser APIs
-
-Use `fakeBrowser` from WXT's testing utilities to test browser APIs:
-
-```ts
-import { fakeBrowser } from 'wxt/testing';
-
-it('should store and retrieve values', async () => {
-  await fakeBrowser.storage.local.set({ key: 'value' });
-  const result = await fakeBrowser.storage.local.get('key');
-  expect(result).toEqual({ key: 'value' });
-});
-```
-
-### Testing Event Listeners
-
-When testing code that registers event listeners:
-
-```ts
-it('should handle browser events', async () => {
-  // Execute the code that registers listeners
-  myService.setupListeners();
-  
-  // Get the event listener from the mock calls
-  const storageListener = fakeBrowser.storage.onChanged.addListener.mock.calls[0][0];
-  
-  // Call the listener directly with a change object
-  storageListener(
-    { 'key': { newValue: 'new value', oldValue: 'old value' } }, 
-    'local'
-  );
-  
-  // Verify the expected behavior occurred
-  expect(myService.wasUpdated).toBe(true);
-});
-```
-
-### Testing Message Handlers
-
-When testing code that registers message handlers:
-
-```ts
-it('should handle messages', async () => {
-  // Execute the code that registers message handlers
-  backgroundScript.main();
-  
-  // Get the message listener directly from the mock calls
-  const messageListener = fakeBrowser.runtime.onMessage.addListener.mock.calls[0][0];
-  
-  // Create a mock sendResponse function
-  const sendResponse = vi.fn();
-  
-  // Call the listener directly with message and context
-  messageListener(
-    { action: 'TEST_ACTION' }, 
-    { id: 'sender-id' }, 
-    sendResponse
-  );
-  
-  // Verify the expected behavior
-  expect(sendResponse).toHaveBeenCalledWith({ success: true });
-});
-```
-
-### Mocking Dependencies
-
-```ts
-import { vi } from 'vitest';
-
-// Mock a service or module
-vi.mock('@/services/SomeService', () => ({
-  SomeService: {
-    method: vi.fn().mockReturnValue('mocked value')
-  }
-}));
-```
-
-### Testing UI Components
-
-For UI components, we mock the DOM rather than using JSDOM to avoid compatibility issues:
-
-```ts
-// Mock DOM elements for UI testing
-const mockButton = {
-  id: 'button-id',
-  style: {},
-  classList: {
-    add: vi.fn(),
-    remove: vi.fn(),
-    contains: vi.fn(() => false)
-  },
-  onclick: null,
-  click: vi.fn()
-};
-
-// Mock document methods
-vi.spyOn(document, 'getElementById')
-  .mockImplementation((id) => {
-    if (id === 'button-id') return mockButton;
-    return null;
-  });
-
-describe('UIComponent', () => {
-  it('should handle click events', () => {
-    // Create component
-    const component = new UIComponent();
-    
-    // Simulate click by calling the event handler directly
-    mockButton.onclick?.({} as any);
-    
-    // Verify expected behavior
-    expect(component.wasClicked).toBe(true);
-  });
-});
-```
-
-## Testing WXT-specific Features
-
-### Testing Content Scripts
-
-```ts
-import contentScript from '@/entrypoints/content';
-import { fakeBrowser } from 'wxt/testing';
-
-describe('Content Script', () => {
-  beforeEach(() => {
-    fakeBrowser.reset();
-  });
-
-  it('should initialize correctly', async () => {
-    // Create mock context
-    const mockContext = {
-      isValid: true,
-      isInvalid: false,
-      addEventListener: vi.fn()
-    };
-    
-    // Run the content script's main function
-    await contentScript.main(mockContext);
-    
-    // Verify behavior
-    expect(mockContext.addEventListener).toHaveBeenCalled();
-  });
-});
-```
-
-### Testing Background Scripts
-
-```ts
-import backgroundScript from '@/entrypoints/background';
-import { fakeBrowser } from 'wxt/testing';
-
-describe('Background Script', () => {
-  beforeEach(() => {
-    fakeBrowser.reset();
-  });
-
-  it('should initialize service worker', () => {
-    // Run background script
-    backgroundScript.main();
-    
-    // Get message listener from mock calls
-    const listeners = fakeBrowser.runtime.onMessage.addListener.mock.calls;
-    expect(listeners.length).toBeGreaterThan(0);
-  });
-});
-```
-
-### Testing Service Worker Lifecycle
-
-```ts
-it('should handle service worker lifecycle events', () => {
-  // Execute background script
-  backgroundScript.main();
-  
-  // Get lifecycle listeners from mock calls
-  const startupListeners = fakeBrowser.runtime.onStartup.addListener.mock.calls;
-  
-  if (startupListeners.length > 0) {
-    // Call the listener directly
-    startupListeners[0][0]();
-  }
-  
-  // Verify the expected behavior
-  expect(StateManager.getInstance().initialize).toHaveBeenCalled();
-});
-```
+State management tests verify:
+- The StateManager functions as a singleton
+- Events are properly emitted and handled
+- State changes are persisted to storage
+- Event listeners are properly cleaned up
 
 ## Running Tests
 
-```bash
-# Run all tests
+To run all tests:
+
+```
 pnpm test
+```
 
-# Run tests in watch mode during development
-pnpm test:watch
+To run a specific test file:
 
-# Generate coverage report
+```
+pnpm test tests/unit/ui/components/AnalysisPanel.test.ts
+```
+
+To run tests with coverage:
+
+```
 pnpm test:coverage
 ```
 
-## Testing Content Scripts
+## Testing Best Practices
 
-When testing content scripts, particularly those that interact with a page's DOM, keep these considerations in mind:
+When writing tests for RateThisRepo, follow these guidelines:
 
-1. **Mock window and document properties**:
-   Content scripts often read from window location and the DOM.
+1. **Test WXT-specific features**: Make sure to test WXT-specific APIs like `createShadowRootUi`, `cssInjectionMode`, and content script context.
 
-   ```typescript
-   // Mock window.location
-   vi.mock('global', () => ({
-     location: {
-       href: 'https://github.com/user/repo',
-       pathname: '/user/repo'
-     }
-   }), { virtual: true });
-   ```
+2. **Mock WXT modules properly**: Always mock WXT modules before importing components that use them to avoid hoisting issues.
 
-2. **Test ContentScriptContext usage**:
-   Content scripts receive a context object from WXT that handles lifecycle.
+3. **Test Shadow DOM integration**: Shadow DOM is critical for proper UI isolation on GitHub pages.
 
-   ```typescript
-   const mockContext = {
-     isValid: true,
-     isInvalid: false,
-     addEventListener: vi.fn()
-   };
-   
-   await contentScript.main(mockContext);
-   expect(mockContext.addEventListener).toHaveBeenCalled();
-   ```
+4. **Verify Tailwind classes**: Use class name checks to ensure Tailwind utility classes are properly applied.
 
-3. **Test cleanup functions**:
-   Content scripts should return a cleanup function that gets called when 
-   the script is unloaded.
+5. **Test cross-browser compatibility**: Though vitest runs in Node, write tests that would ensure compatibility across browsers.
 
-   ```typescript
-   const cleanup = await contentScript.main(mockContext);
-   cleanup();
-   expect(stateManager.destroy).toHaveBeenCalled();
-   ```
+6. **Clean up resources**: Ensure all tests clean up resources properly, especially event listeners and watchers.
 
-## Common Pitfalls to Avoid
+7. **Test service worker lifecycle**: Verify that the extension handles service worker termination and restart correctly.
 
-- **Don't use `dispatch` methods on event objects** - fakeBrowser events should be tested by accessing the registered listeners directly through mock calls
-- **Don't forget to reset fakeBrowser** before each test with `fakeBrowser.reset()`
-- **Don't use unnecessary mocks** - fakeBrowser provides in-memory implementations of most browser APIs
-- **Don't test implementation details** - focus on testing behavior and outputs
-- **Mock DOM selectively** - only mock the parts of the DOM your component actually interacts with
-- **Don't use real timers** - use `vi.useFakeTimers()` for predictable timer behavior
+8. **Test UI across themes**: Ensure UI components work correctly with all GitHub themes.
 
-## Mocking WXT APIs
+## Testing WXT Components with Shadow DOM
 
-When mocking WXT-specific APIs, keep these tips in mind:
+Testing components that use WXT's Shadow DOM integration requires special considerations:
 
-1. **Understand `#imports` resolution**:
-   When you use `#imports` in your code, WXT resolves these to real paths during build and test time.
-   To mock these imports correctly, you need to mock the actual paths:
+### Mocking Strategy
 
-   ```ts
-   // If your code has:
-   import { injectScript } from '#imports';
-   
-   // In your test, mock the actual path:
-   vi.mock("wxt/utils/inject-script", () => ({
-     injectScript: vi.fn()
-   }));
-   ```
+1. **Create Shared Mock References**: Define mock objects at the module level to ensure consistent references:
 
-2. **Look up real paths in `.wxt/types/imports-module.d.ts`**:
-   This file contains mappings from `#imports` to real paths.
+```javascript
+// Create mock objects at the module level
+const mockScoreDisplay = {
+  setScore: vi.fn(),
+  getElement: vi.fn(() => createElementMock())
+};
 
-3. **Always run `wxt prepare`** before writing tests to ensure this file is generated.
+// Use these in your mocks
+vi.mock('@/ui/components/ScoreDisplay', () => ({
+  ScoreDisplay: vi.fn().mockImplementation(() => mockScoreDisplay)
+}));
+```
 
-## Next Steps
+2. **Properly Mock DOM Elements**: DOM element mocks need all the properties your component accesses:
 
-To improve test coverage, consider:
+```javascript
+function createElementMock() {
+  return {
+    style: {
+      position: '',
+      top: '',
+      zIndex: '',
+      // Include all style properties used in your component
+    },
+    classList: {
+      add: vi.fn(),
+      remove: vi.fn(),
+      contains: vi.fn()
+    },
+    // Include all DOM properties and methods used
+    appendChild: vi.fn(),
+    innerHTML: '',
+    // ... other properties
+  };
+}
+```
 
-1. **Integration Tests** for key workflows, like:
-   - The full analysis pipeline from user action to UI display
-   - Message passing between background and content scripts
+3. **Mock ShadowRootUi**: Create a proper mock for WXT's shadow root UI:
 
-2. **E2E Tests** with Playwright to:
-   - Test the extension in actual browser environments
-   - Verify UI rendering and interaction
-   - Test cross-browser compatibility
+```javascript
+const mockShadowUi = {
+  mount: vi.fn(),
+  remove: vi.fn(),
+  shadowHost: { style: { display: 'block' } }
+};
+
+vi.mock('wxt/utils/content-script-ui/shadow-root', () => ({
+  createShadowRootUi: vi.fn().mockResolvedValue(mockShadowUi)
+}));
+```
+
+### Testing Approach
+
+For complex components like those using Shadow DOM, use an incremental testing approach:
+
+1. **Start with Import Tests**: Verify that the component can be imported without errors:
+
+```javascript
+describe('Basic Import', () => {
+  it('should import correctly', async () => {
+    const { MyComponent } = await import('@/path/to/MyComponent');
+    expect(MyComponent).toBeDefined();
+  });
+});
+```
+
+2. **Test Simple Methods First**: Test methods that don't require complex initialization:
+
+```javascript
+describe('Basic Methods', () => {
+  // Test methods that don't rely on initialization
+});
+```
+
+3. **Use Direct Property Injection**: For methods that require initialized state, inject the properties directly:
+
+```javascript
+describe('UI methods with mocked state', () => {
+  beforeEach(() => {
+    // @ts-ignore - setting private properties for testing
+    component.ui = mockShadowUi;
+  });
+  
+  it('should show correctly', () => {
+    component.show();
+    expect(mockShadowUi.shadowHost.style.display).toBe('block');
+  });
+});
+```
+
+4. **Test Critical Paths**: Focus on testing the most important functionality first.
+
+### Handling Hoisting Issues
+
+Vitest hoists `vi.mock()` calls to the top of the file, which can cause issues with variable initialization:
+
+```javascript
+// BAD: This will cause "Cannot access variable before initialization"
+vi.mock('some-module', () => ({
+  someFunction: () => mockVariable
+}));
+const mockVariable = { foo: 'bar' };
+
+// GOOD: Define variables first, then use vi.mock()
+const mockVariable = { foo: 'bar' };
+vi.mock('some-module', () => ({
+  someFunction: () => mockVariable
+}));
+```
+
+### Testing DOM Manipulations
+
+When testing methods that manipulate the DOM:
+
+1. Use `Object.defineProperty` for complex properties:
+
+```javascript
+Object.defineProperty(element, 'innerHTML', {
+  set: vi.fn(),
+  get: vi.fn(() => '')
+});
+```
+
+2. Store references to methods that might be nullified during the test:
+
+```javascript
+const removeChildMock = vi.fn();
+// Use this reference in expectations even after the element is removed
+```
+
+## GitHub CI/CD Integration
+
+Tests are automatically run on GitHub Actions for:
+- Pull requests targeting the main branch
+- Push to the main branch
+- Manual workflow dispatch
+
+The CI/CD pipeline runs tests with coverage reporting and ensures all tests pass before allowing merges.
