@@ -33,10 +33,10 @@ export class HealthIndicators {
     // Create main container
     this.container = document.createElement('div');
     this.container.className = 'mt-8';
-
-    // Create section header with improved Tailwind classes
+    
+    // Create section header with Tailwind classes
     const header = document.createElement('h3');
-    header.className = 'flex items-center text-lg font-semibold mb-4 text-black';
+    header.className = 'flex items-center text-lg font-semibold mb-4 text-gray-900';
 
     // Fix SVG rendering in header
     const svgIcon = IconHelper.getSvgIconString('calendar');
@@ -98,39 +98,34 @@ export class HealthIndicators {
       },
     ];
 
-    // Add each indicator with improved styling
+    // Add each indicator
     indicators.forEach(indicator => {
-      // Create indicator container with combined Tailwind + custom classes
+      // Create indicator container with Tailwind classes
       const indicatorElement = document.createElement('div');
 
-      // Base classes using Tailwind
-      const baseClasses = 'rtr-indicator flex items-center p-3 rounded-md mb-3 text-black';
+      // Set base classes
+      indicatorElement.className = `flex items-center p-3 rounded-md mb-3 ${
+        indicator.status 
+          ? 'bg-[#34d39933] border-green-400' 
+          : 'bg-[#ef44441a] border-red-500'
+      } border-l-4 border-solid text-gray-900`;
 
-      // Add status-specific classes
-      if (indicator.status) {
-        // Use our custom class for success state
-        indicatorElement.className = `${baseClasses} success`;
-      } else {
-        // Use our custom class for error state
-        indicatorElement.className = `${baseClasses} error`;
-      }
-
-      // Add icon with better contrast colors
+      // Add icon
       const iconSpan = document.createElement('span');
-      iconSpan.className = 'flex-shrink-0';
+      iconSpan.className = 'flex-shrink-0 text-current';
 
       if (indicator.status) {
         // Success icon
         iconSpan.innerHTML = `<svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M10 18C14.4183 18 18 14.4183 18 10C18 5.58172 14.4183 2 10 2C5.58172 2 2 5.58172 2 10C2 14.4183 5.58172 18 10 18Z" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M7 10L9 12L13 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M10 18C14.4183 18 18 14.4183 18 10C18 5.58172 14.4183 2 10 2C5.58172 2 2 5.58172 2 10C2 14.4183 5.58172 18 10 18Z" stroke="#2ea44f" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M7 10L9 12L13 8" stroke="#2ea44f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>`;
       } else {
         // Error icon
         iconSpan.innerHTML = `<svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M10 18C14.4183 18 18 14.4183 18 10C18 5.58172 14.4183 2 10 2C5.58172 2 2 5.58172 2 10C2 14.4183 5.58172 18 10 18Z" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M12 8L8 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M8 8L12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M10 18C14.4183 18 18 14.4183 18 10C18 5.58172 14.4183 2 10 2C5.58172 2 2 5.58172 2 10C2 14.4183 5.58172 18 10 18Z" stroke="#d73a49" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M12 8L8 12" stroke="#d73a49" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M8 8L12 12" stroke="#d73a49" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>`;
       }
 
@@ -140,56 +135,40 @@ export class HealthIndicators {
       const valueContainer = document.createElement('div');
       valueContainer.className = 'ml-4 flex-1';
 
-      // Create name element with better tooltips
+      // Create name element with tooltip
       let nameElement;
 
       if (indicator.tooltip) {
-        // Create a tooltip container
+        // Create a tooltip container using Tailwind classes
         const tooltipContainer = document.createElement('div');
-        tooltipContainer.className = 'relative inline-block group';
+        tooltipContainer.className = 'relative inline-block group'; // 'group' for hover effects
 
         const nameSpan = document.createElement('span');
-        nameSpan.className = 'font-semibold text-black';
+        nameSpan.className = 'font-semibold text-gray-900';
         nameSpan.textContent = `${indicator.name}:`;
 
         tooltipContainer.appendChild(nameSpan);
 
-        // Create tooltip using our rtr-tooltip class
+        // Create tooltip with Tailwind classes
         const tooltipText = document.createElement('div');
-        tooltipText.className =
-          'rtr-tooltip absolute bottom-full left-0 w-64 p-2 mb-1 rounded z-10';
-        tooltipText.style.backgroundColor = '#24292e'; // GitHub dark color
-        tooltipText.style.color = 'white';
+        tooltipText.className = 'invisible opacity-0 group-hover:visible group-hover:opacity-100 transition-opacity duration-200 absolute bottom-full left-0 w-64 p-2 mb-1 rounded z-10 bg-gray-800 text-white text-sm';
         tooltipText.innerHTML = indicator.tooltip;
-
-        // Add hover event listener for showing tooltip
-        tooltipContainer.addEventListener('mouseenter', () => {
-          tooltipText.classList.add('visible');
-        });
-
-        tooltipContainer.addEventListener('mouseleave', () => {
-          tooltipText.classList.remove('visible');
-        });
 
         // Add a tooltip arrow
         const tooltipArrow = document.createElement('div');
-        tooltipArrow.className = 'absolute top-full left-4';
-        tooltipArrow.style.borderWidth = '4px';
-        tooltipArrow.style.borderStyle = 'solid';
-        tooltipArrow.style.borderColor = 'transparent';
-        tooltipArrow.style.borderTopColor = '#24292e';
+        tooltipArrow.className = 'absolute top-full left-4 border-4 border-solid border-transparent border-t-gray-800';
         tooltipText.appendChild(tooltipArrow);
 
         tooltipContainer.appendChild(tooltipText);
         nameElement = tooltipContainer;
       } else {
         nameElement = document.createElement('span');
-        nameElement.className = 'font-semibold text-black';
+        nameElement.className = 'font-semibold text-gray-900';
         nameElement.textContent = `${indicator.name}:`;
       }
 
       const valueText = document.createElement('span');
-      valueText.className = 'ml-1 text-gray-800';
+      valueText.className = 'ml-1 text-gray-700';
       valueText.textContent = indicator.value;
 
       // Assemble everything

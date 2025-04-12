@@ -17,7 +17,6 @@ export class ToggleButton {
   private tooltip!: HTMLDivElement;
   private toggleCallback: () => void;
   private ctx: ContentScriptContext;
-  private overlay: HTMLElement | null = null;
 
   /**
    * Create a new toggle button
@@ -36,19 +35,6 @@ export class ToggleButton {
    */
   public async initialize(): Promise<void> {
     try {
-      // Create a small overlay just for the button area
-      this.overlay = document.createElement('div');
-      this.overlay.style.position = 'fixed';
-      this.overlay.style.bottom = '0';
-      this.overlay.style.right = '0';
-      this.overlay.style.width = '100px'; // Just enough to cover the button area
-      this.overlay.style.height = '100px';
-      this.overlay.style.pointerEvents = 'none'; // Let events pass through by default
-      this.overlay.style.zIndex = '9998'; // Just below our UI
-
-      // Add the overlay to the document
-      document.body.appendChild(this.overlay);
-
       // Create the shadow root UI using WXT's API
       this.ui = await createShadowRootUi(this.ctx, {
         name: 'repo-evaluator-button',
@@ -62,20 +48,23 @@ export class ToggleButton {
           container.classList.add(BUTTON_CLASSES.COMPONENT);
 
           // Apply fixed positioning to the shadow host element
-          // Use overflow: visible to ensure animation isn't cut off
           shadowHost.style.position = 'fixed';
-          shadowHost.style.bottom = '20px';
-          shadowHost.style.right = '20px';
+          shadowHost.style.bottom = '0';
+          shadowHost.style.right = '0';
+          shadowHost.style.width = '100px'; // Just enough to cover the button area
+          shadowHost.style.height = '100px';
           shadowHost.style.zIndex = '9999';
           shadowHost.style.overflow = 'visible';
-
-          // Add padding to shadow host to accommodate animation expansion
-          shadowHost.style.padding = '10px';
+          shadowHost.style.pointerEvents = 'none'; // Let events pass through by default
 
           // Create button container with padding for animation expansion
           const buttonContainer = document.createElement('div');
           buttonContainer.className = `relative ${BUTTON_CLASSES.CONTAINER}`;
           buttonContainer.style.pointerEvents = 'auto'; // Make sure button captures events
+          buttonContainer.style.position = 'absolute';
+          buttonContainer.style.bottom = '20px';
+          buttonContainer.style.right = '20px';
+          buttonContainer.style.padding = '10px'; // Accommodate animation expansion
 
           // Create tooltip with our standardized classes
           this.tooltip = document.createElement('div');
@@ -160,13 +149,6 @@ export class ToggleButton {
   public remove(): void {
     if (this.ui) {
       this.ui.remove();
-
-      // Remove the overlay
-      if (this.overlay && this.overlay.parentNode) {
-        this.overlay.parentNode.removeChild(this.overlay);
-        this.overlay = null;
-      }
-
       this.ui = null;
     }
   }

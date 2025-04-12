@@ -27,7 +27,7 @@ export class AnalysisPanel {
   private detailedMetricsPanel!: DetailedMetricsPanel;
   private closeCallback?: () => void;
   private ctx: ContentScriptContext;
-  private overlay: HTMLElement | null = null;
+  private internalOverlay: HTMLElement | null = null;
 
   /**
    * Create a new analysis panel
@@ -46,19 +46,6 @@ export class AnalysisPanel {
    */
   public async initialize(): Promise<void> {
     try {
-      // Create a full screen overlay to capture events
-      this.overlay = document.createElement('div');
-      this.overlay.style.position = 'fixed';
-      this.overlay.style.top = '0';
-      this.overlay.style.left = '0';
-      this.overlay.style.width = '100vw';
-      this.overlay.style.height = '100vh';
-      this.overlay.style.pointerEvents = 'none'; // Let events pass through by default
-      this.overlay.style.zIndex = '9998'; // Just below our UI
-
-      // Add the overlay to the document
-      document.body.appendChild(this.overlay);
-
       // Create the shadow root UI using WXT's API
       this.ui = await createShadowRootUi(this.ctx, {
         name: 'repo-evaluator-panel',
@@ -73,30 +60,48 @@ export class AnalysisPanel {
 
           // Apply fixed positioning to the host element
           shadowHost.style.position = 'fixed';
-          shadowHost.style.top = '20px';
-          shadowHost.style.right = '20px';
-          shadowHost.style.width = 'auto';
-          shadowHost.style.maxWidth = '800px';
-          shadowHost.style.maxHeight = '90vh';
+          shadowHost.style.top = '0';
+          shadowHost.style.left = '0';
+          shadowHost.style.width = '100vw';
+          shadowHost.style.height = '100vh';
+          shadowHost.style.pointerEvents = 'none'; // Let events pass through by default
           shadowHost.style.zIndex = '10000';
           shadowHost.style.overflow = 'visible';
 
-          // Create panel container using Tailwind classes
+          // Create an internal overlay inside the shadow DOM (replacing the global one)
+          this.internalOverlay = document.createElement('div');
+          this.internalOverlay.style.position = 'absolute';
+          this.internalOverlay.style.top = '0';
+          this.internalOverlay.style.left = '0';
+          this.internalOverlay.style.width = '100%';
+          this.internalOverlay.style.height = '100%';
+          this.internalOverlay.style.pointerEvents = 'none'; // Let events pass through by default
+          
+          // Create the panel container (will be positioned in the overlay)
           const panelContainer = document.createElement('div');
           panelContainer.className =
             'bg-white rounded-lg shadow-lg overflow-hidden text-gray-800 font-sans';
           panelContainer.style.pointerEvents = 'auto'; // Make the panel capture events
-          panelContainer.style.width = '100%';
+          panelContainer.style.position = 'absolute';
+          panelContainer.style.top = '20px';
+          panelContainer.style.right = '20px';
+          panelContainer.style.width = 'auto';
+          panelContainer.style.maxWidth = '800px';
+          panelContainer.style.maxHeight = '90vh';
+          panelContainer.style.overflow = 'hidden'; // Prevent horizontal overflow
           panelContainer.style.overflowX = 'hidden'; // Prevent horizontal overflow
 
           // Create panel elements
           this.createPanelElements(panelContainer);
 
-          // Add to container
-          container.appendChild(panelContainer);
+          // Add the panel container to the overlay
+          this.internalOverlay.appendChild(panelContainer);
+          
+          // Add the overlay to the container
+          container.appendChild(this.internalOverlay);
 
-          // Setup drag functionality
-          this.dragService = new DragService(shadowHost, this.headerBar);
+          // Setup drag functionality on the panel container
+          this.dragService = new DragService(panelContainer, this.headerBar);
 
           // Add ID for legacy compatibility
           container.id = 'repo-evaluator-panel';
@@ -223,6 +228,11 @@ export class AnalysisPanel {
       return;
     }
 
+    if (!resultData) {
+      errorLog('ui', 'Cannot set data: Invalid data provided');
+      return;
+    }
+
     // Clear previous content
     this.contentContainer.innerHTML = '';
 
@@ -292,13 +302,6 @@ export class AnalysisPanel {
   public remove(): void {
     if (this.ui) {
       this.ui.remove();
-
-      // Remove the overlay
-      if (this.overlay && this.overlay.parentNode) {
-        this.overlay.parentNode.removeChild(this.overlay);
-        this.overlay = null;
-      }
-
       this.ui = null;
     }
   }
@@ -309,11 +312,6 @@ export class AnalysisPanel {
   public show(): void {
     if (this.ui?.shadowHost) {
       this.ui.shadowHost.style.display = 'block';
-
-      // Make sure overlay is in the DOM
-      if (this.overlay && !document.body.contains(this.overlay)) {
-        document.body.appendChild(this.overlay);
-      }
     }
   }
 
@@ -323,11 +321,6 @@ export class AnalysisPanel {
   public hide(): void {
     if (this.ui?.shadowHost) {
       this.ui.shadowHost.style.display = 'none';
-
-      // Remove overlay when panel is hidden
-      if (this.overlay && this.overlay.parentNode) {
-        this.overlay.parentNode.removeChild(this.overlay);
-      }
     }
   }
 
