@@ -1,219 +1,265 @@
-import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
-import { ToggleButton } from '@/ui/components/ToggleButton';
-import { StyleService } from '@/ui/services/StyleService';
+// tests/unit/ui/components/ToggleButton.test.ts
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { fakeBrowser } from 'wxt/testing';
+import { ContentScriptContext } from 'wxt/utils/content-script-context';
 
-// Mock StyleService
-vi.mock('@/ui/services/StyleService', () => ({
-  StyleService: {
-    getInstance: vi.fn(() => ({
-      addToggleButtonStyles: vi.fn()
-    }))
+// Mock elements that we'll use for testing
+const mockButton = {
+  classList: {
+    add: vi.fn(),
+    remove: vi.fn()
+  },
+  addEventListener: vi.fn(),
+  setAttribute: vi.fn(),
+  innerHTML: "",
+  style: {}
+};
+
+const mockTooltip = {
+  classList: {
+    add: vi.fn(),
+    remove: vi.fn()
+  },
+  textContent: "",
+  style: {}
+};
+
+const mockButtonContainer = {
+  classList: {
+    add: vi.fn()
+  },
+  className: "",
+  style: {},
+  appendChild: vi.fn(),
+  addEventListener: vi.fn()
+};
+
+// Mock shadow host for UI
+const mockShadowHost = {
+  style: {
+    position: '',
+    bottom: '',
+    right: '',
+    width: '',
+    height: '',
+    zIndex: '',
+    overflow: '',
+    pointerEvents: '',
+    display: 'block'
+  }
+};
+
+const mockShadowUi = {
+  mount: vi.fn(),
+  remove: vi.fn(),
+  shadowHost: mockShadowHost,
+  autoMount: vi.fn(),
+  unmount: vi.fn()
+};
+
+// Mock document.createElement to return our mock objects
+const createElement = vi.fn((tagName) => {
+  if (tagName === 'button') {
+    return mockButton;
+  } else if (tagName === 'div') {
+    // Return different divs based on creation order
+    if (createElement.mock.calls.filter(call => call[0] === 'div').length === 1) {
+      return mockButtonContainer;
+    } else {
+      return mockTooltip;
+    }
+  }
+  // Default element
+  return {
+    style: {},
+    classList: { add: vi.fn() },
+    appendChild: vi.fn(),
+    addEventListener: vi.fn()
+  };
+});
+
+// Mock document
+vi.stubGlobal('document', {
+  createElement,
+  body: {
+    appendChild: vi.fn()
+  }
+});
+
+// Mock WXT's shadow DOM API
+vi.mock('wxt/utils/content-script-ui/shadow-root', () => ({
+  createShadowRootUi: vi.fn(async (ctx, options) => {
+    // Create container element
+    const container = {
+      classList: { add: vi.fn() },
+      appendChild: vi.fn()
+    };
+    
+    // Make sure we call onMount directly
+    if (options && options.onMount) {
+      options.onMount(container, { host: mockShadowHost }, mockShadowHost);
+    }
+    
+    return mockShadowUi;
+  })
+}));
+
+// Mock config
+vi.mock('@/utils/config', () => ({
+  debugLog: vi.fn(),
+  errorLog: vi.fn()
+}));
+
+// Mock button classes
+vi.mock('@/ui/styles/button-animations', () => ({
+  BUTTON_CLASSES: {
+    COMPONENT: 'rtr-component',
+    CONTAINER: 'rtr-button-container',
+    TOOLTIP: 'rtr-tooltip',
+    TOOLTIP_VISIBLE: 'visible',
+    DEFAULT: 'rtr-button-default',
+    ACTIVE: 'rtr-button-active',
   }
 }));
 
-// Simple event emulation
-const createEvent = (type: string) => ({ type } as Event);
-
 describe('ToggleButton', () => {
-  // Properties spied on or mocked
-  let buttonOnClick: ((e: Event) => void) | null = null;
-  let buttonOnMouseover: ((e: Event) => void) | null = null;
-  let buttonOnMouseout: ((e: Event) => void) | null = null;
+  let ToggleButton;
+  let toggleButton;
+  let toggleCallback;
   
-  // Mock DOM elements with proper style properties
-  const mockButtonContainer = {
-    id: '',
-    style: {
-      cssText: '',
-      position: '',
-      bottom: '',
-      right: '',
-      zIndex: ''
-    },
-    appendChild: vi.fn()
-  };
-  
-  const mockButton = { 
-    id: '',
-    innerHTML: '',
-    title: 'Analyze Repository',
-    style: {
-      cssText: '',
-      width: '',
-      height: '',
-      borderRadius: '',
-      backgroundColor: '',
-      color: '',
-      border: '',
-      boxShadow: '',
-      cursor: '',
-      fontSize: '',
-      display: '',
-      alignItems: '',
-      justifyContent: '',
-      animation: '',
-      transition: ''
-    },
-    classList: {
-      add: vi.fn(),
-      remove: vi.fn(),
-      contains: vi.fn(() => false)
-    },
-    onclick: null,
-    onmouseover: null,
-    onmouseout: null
-  };
-  
-  const mockTooltip = {
-    id: '',
-    textContent: 'Analyze Repository',
-    style: {
-      cssText: '',
-      position: '',
-      top: '',
-      right: '',
-      backgroundColor: '',
-      color: '',
-      padding: '',
-      borderRadius: '',
-      fontSize: '',
-      opacity: '',
-      transition: '',
-      pointerEvents: '',
-      whiteSpace: ''
-    }
-  };
-  
-  // Keep track of created elements in order
-  let createdElements: any[] = [];
-  
-  // Mock document
-  const mockDocument = {
-    getElementById: vi.fn((id) => {
-      if (id === 'repo-evaluator-tooltip') return mockTooltip;
-      if (id === 'repo-evaluator-toggle') return mockButton;
-      if (id === 'repo-evaluator-button-container') return mockButtonContainer;
-      return null;
-    }),
-    createElement: vi.fn((tag) => {
-      if (tag === 'div') {
-        if (!mockButtonContainer.id) {
-          return mockButtonContainer;
-        } else {
-          return mockTooltip;
-        }
-      }
-      if (tag === 'button') {
-        return mockButton;
-      }
-      return { style: { cssText: '' } };
-    }),
-    body: {
-      appendChild: vi.fn()
-    }
-  };
-  
-  beforeEach(() => {
-    // Reset everything
+  beforeEach(async () => {
+    // Clear all mocks
     vi.clearAllMocks();
-    createdElements = [];
     
-    // Reset button properties
-    buttonOnClick = null;
-    buttonOnMouseover = null;
-    buttonOnMouseout = null;
+    // Create toggle callback
+    toggleCallback = vi.fn();
     
-    // Reset mock element properties
-    mockButtonContainer.id = '';
-    mockButton.id = '';
-    mockButton.title = 'Analyze Repository';
-    mockTooltip.id = '';
-    mockTooltip.textContent = 'Analyze Repository';
-    mockTooltip.style.opacity = '';
+    // Reset mock elements
+    mockButton.addEventListener.mockClear();
+    mockButton.setAttribute.mockClear();
+    mockButtonContainer.appendChild.mockClear();
+    mockButtonContainer.addEventListener.mockClear();
     
-    // Set up global document
-    global.document = mockDocument as any;
+    // Reset shadow host display
+    mockShadowHost.style.display = 'block';
     
-    // Store the original setupEventListeners method
-    const originalSetupEventListeners = ToggleButton.prototype.setupEventListeners;
+    // Import ToggleButton class
+    const module = await import('@/ui/components/ToggleButton');
+    ToggleButton = module.ToggleButton;
     
-    // Override setupEventListeners to capture event handlers
-    ToggleButton.prototype.setupEventListeners = function(toggleCallback) {
-      originalSetupEventListeners.call(this, toggleCallback);
-      
-      // Capture the event handlers
-      if (this.button) {
-        buttonOnClick = this.button.onclick;
-        buttonOnMouseover = this.button.onmouseover;
-        buttonOnMouseout = this.button.onmouseout;
-      }
+    // Create mock context
+    const mockContext = {
+      addEventListener: vi.fn(),
+      isValid: true,
+      isInvalid: false
     };
     
-    // Clean up after the tests
-    afterEach(() => {
-      ToggleButton.prototype.setupEventListeners = originalSetupEventListeners;
-    });
+    // Create ToggleButton instance
+    toggleButton = new ToggleButton(toggleCallback, mockContext as ContentScriptContext);
   });
-
-  it('should initialize correctly', () => {
-    const toggleCallback = vi.fn();
-    const toggleButton = new ToggleButton(toggleCallback);
-    
-    expect(StyleService.getInstance).toHaveBeenCalled();
-    expect(mockButtonContainer.id).toBe('repo-evaluator-button-container');
-    expect(mockButton.id).toBe('repo-evaluator-toggle');
-    expect(mockTooltip.id).toBe('repo-evaluator-tooltip');
+  
+  it('should instantiate correctly', () => {
+    expect(toggleButton).toBeDefined();
   });
-
-  it('should show tooltip on mouseover', () => {
-    const toggleCallback = vi.fn();
-    const toggleButton = new ToggleButton(toggleCallback);
+  
+  it('should create button elements on initialization', async () => {
+    // Initialize the button
+    await toggleButton.initialize();
     
-    // Manually trigger the mouseover event handler
-    if (buttonOnMouseover) {
-      buttonOnMouseover(createEvent('mouseover'));
-      expect(mockTooltip.style.opacity).toBe('1');
-    }
+    // Verify document.createElement was called with correct arguments
+    expect(createElement).toHaveBeenCalledWith('div');
+    expect(createElement).toHaveBeenCalledWith('button');
+    
+    // Verify button was set up correctly
+    expect(mockButton.setAttribute).toHaveBeenCalledWith('aria-label', 'Analyze Repository');
+    expect(mockButton.innerHTML).toBe('📊');
+    expect(mockButton.addEventListener).toHaveBeenCalledWith('click', expect.any(Function));
+    expect(mockButton.addEventListener).toHaveBeenCalledWith('mouseover', expect.any(Function));
+    expect(mockButton.addEventListener).toHaveBeenCalledWith('mouseout', expect.any(Function));
+    
+    // Verify the button container has proper structure
+    expect(mockButtonContainer.addEventListener).toHaveBeenCalledWith(
+      'wheel', expect.any(Function), { passive: false }
+    );
   });
-
-  it('should hide tooltip on mouseout', () => {
-    const toggleCallback = vi.fn();
-    const toggleButton = new ToggleButton(toggleCallback);
+  
+  it('should mount button to the DOM', async () => {
+    // Set UI property
+    // @ts-ignore - accessing private property for testing
+    toggleButton.ui = mockShadowUi;
     
-    // Set initial state
-    mockTooltip.style.opacity = '1';
+    // Mount the button
+    await toggleButton.mount();
     
-    // Manually trigger the mouseout event handler
-    if (buttonOnMouseout) {
-      buttonOnMouseout(createEvent('mouseout'));
-      expect(mockTooltip.style.opacity).toBe('0');
-    }
+    // Verify mount was called
+    expect(mockShadowUi.mount).toHaveBeenCalled();
   });
-
-  it('should call the toggle callback when clicked', () => {
-    const toggleCallback = vi.fn();
-    const toggleButton = new ToggleButton(toggleCallback);
+  
+  it('should remove button from the DOM', () => {
+    // Set UI property
+    // @ts-ignore - accessing private property for testing
+    toggleButton.ui = mockShadowUi;
     
-    // Manually trigger the click event handler
-    if (buttonOnClick) {
-      buttonOnClick(createEvent('click'));
-      expect(toggleCallback).toHaveBeenCalled();
-    }
+    // Remove the button
+    toggleButton.remove();
+    
+    // Verify remove was called
+    expect(mockShadowUi.remove).toHaveBeenCalled();
+    
+    // Verify UI reference was cleared
+    // @ts-ignore - accessing private property for testing
+    expect(toggleButton.ui).toBeNull();
   });
-
-  it('should toggle active state', () => {
-    const toggleCallback = vi.fn();
-    const toggleButton = new ToggleButton(toggleCallback);
+  
+  it('should set active state correctly', () => {
+    // Set button property
+    // @ts-ignore - accessing private property for testing
+    toggleButton.button = mockButton;
     
-    // Test setting active to true
+    // Set to active
     toggleButton.setActive(true);
-    expect(mockButton.classList.add).toHaveBeenCalledWith('active');
-    expect(mockButton.title).toBe('Hide Repository Analysis');
+    expect(mockButton.classList.remove).toHaveBeenCalledWith('rtr-button-default');
+    expect(mockButton.classList.add).toHaveBeenCalledWith('rtr-button-active');
     
-    // Test setting active to false
-    mockButton.classList.contains = vi.fn().mockReturnValue(true);
+    // Clear mocks
+    mockButton.classList.remove.mockClear();
+    mockButton.classList.add.mockClear();
+    
+    // Set to inactive
     toggleButton.setActive(false);
-    expect(mockButton.classList.remove).toHaveBeenCalledWith('active');
-    expect(mockButton.title).toBe('Analyze Repository');
+    expect(mockButton.classList.remove).toHaveBeenCalledWith('rtr-button-active');
+    expect(mockButton.classList.add).toHaveBeenCalledWith('rtr-button-default');
+  });
+  
+  it('should call toggle callback when clicked', () => {
+    // Access the private method
+    // @ts-ignore - accessing private method for testing
+    const handleClick = toggleButton.handleClick.bind(toggleButton);
+    
+    // Call the handler
+    handleClick();
+    
+    // Verify callback was called
+    expect(toggleCallback).toHaveBeenCalled();
+  });
+  
+  it('should show and hide tooltip', () => {
+    // Set tooltip property
+    // @ts-ignore - accessing private property for testing
+    toggleButton.tooltip = mockTooltip;
+    
+    // Get the private methods
+    // @ts-ignore - accessing private method for testing
+    const showTooltip = toggleButton.showTooltip.bind(toggleButton);
+    // @ts-ignore - accessing private method for testing
+    const hideTooltip = toggleButton.hideTooltip.bind(toggleButton);
+    
+    // Test show tooltip
+    showTooltip();
+    expect(mockTooltip.classList.add).toHaveBeenCalledWith('visible');
+    
+    // Test hide tooltip
+    hideTooltip();
+    expect(mockTooltip.classList.remove).toHaveBeenCalledWith('visible');
   });
 });

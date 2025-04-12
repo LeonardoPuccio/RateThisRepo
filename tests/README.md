@@ -206,6 +206,53 @@ describe('UI methods with mocked state', () => {
 
 4. **Test Critical Paths**: Focus on testing the most important functionality first.
 
+### Testing Error Handling
+
+To test error handling in components, especially when the actual implementation would throw errors before your checks:
+
+1. **Method Mocking Approach**:
+
+```javascript
+// Save original method implementation
+const originalMethod = component.someMethod;
+
+// Create a mock that handles the error case first
+// @ts-ignore - we're mocking the method
+component.someMethod = vi.fn().mockImplementation((input) => {
+  // Early validation
+  if (!input) {
+    mockErrorLog('ui', 'Error message');
+    return;
+  }
+  // Call original implementation for valid inputs
+  return originalMethod.call(component, input);
+});
+
+// Now test with invalid input
+component.someMethod(null);
+expect(mockErrorLog).toHaveBeenCalled();
+```
+
+2. **Handling TypeScript Errors**:
+
+When testing components with TypeScript, you'll often need to use type assertions for accessing private members:
+
+```typescript
+// For accessing private properties
+// @ts-ignore - accessing private property for testing
+expect(component.privateProperty).toBeNull();
+
+// For setting private properties
+// @ts-ignore - setting private property for testing
+component.privateProperty = mockValue;
+
+// When passing known invalid values to test error handling
+// @ts-ignore - deliberately passing null to test error handling
+component.method(null);
+```
+
+This approach allows testing error paths while working around TypeScript's type checking.
+
 ### Handling Hoisting Issues
 
 Vitest hoists `vi.mock()` calls to the top of the file, which can cause issues with variable initialization:

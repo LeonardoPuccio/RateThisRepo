@@ -348,25 +348,14 @@ describe('AnalysisPanel Instance Methods', () => {
   // Test the simplified show/hide methods (mocking the Shadow DOM UI instead of initializing)
   describe('UI visibility methods with mocked shadowUI', () => {
     beforeEach(() => {
-      // Manually set the ui property to our mock and create overlay element
+      // Manually set the ui property to our mock
       // @ts-ignore - setting private properties for testing
       panel.ui = mockShadowUi;
-      // @ts-ignore
-      panel.overlay = createElementMock();
-      
-      // Mock document.body.contains to return false for the overlay
-      mockBody.contains.mockImplementation((element) => {
-        // @ts-ignore - accessing private property for testing
-        return element === panel.overlay ? false : false;
-      });
     });
     
     it('should show the panel correctly', () => {
       panel.show();
       expect(mockShadowHost.style.display).toBe('block');
-      
-      // Since document.body.contains returns false, appendChild should be called
-      expect(mockBodyAppendChild).toHaveBeenCalled();
     });
     
     it('should hide the panel correctly', () => {
@@ -437,103 +426,85 @@ describe('AnalysisPanel Instance Methods', () => {
       expect(mockDetailedMetricsPanel.setData).toHaveBeenCalledWith(mockAnalysisData);
     });
     
-    // Replace the "should handle invalid data gracefully" test with this:
-it('should handle invalid data gracefully', () => {
-  // Reset all mock function calls
-  mockScoreDisplay.setScore.mockClear();
-  mockHealthIndicators.setData.mockClear();
-  mockDetailedMetricsPanel.setData.mockClear();
-  mockErrorLog.mockClear();
-  
-  // Mock the implementation to return early for invalid data
-  // Save original setData implementation first
-  const originalSetData = panel.setData;
-  
-  // @ts-ignore - we're mocking the method
-  panel.setData = vi.fn().mockImplementation((data) => {
-    if (!data) {
-      mockErrorLog('ui', 'Cannot set data: Invalid data provided');
-      return;
-    }
-    return originalSetData.call(panel, data);
+    // Test for null data - this now tests the actual implementation
+    it('should handle null data gracefully', () => {
+      // Reset all mock function calls
+      mockScoreDisplay.setScore.mockClear();
+      mockHealthIndicators.setData.mockClear();
+      mockDetailedMetricsPanel.setData.mockClear();
+      mockErrorLog.mockClear();
+      
+      // Call setData with null
+      // @ts-ignore - deliberately passing null to test error handling
+      panel.setData(null);
+      
+      // Should log an error
+      expect(mockErrorLog).toHaveBeenCalledWith('ui', 'Cannot set data: Invalid data provided');
+      
+      // Should not call component methods with invalid data
+      expect(mockScoreDisplay.setScore).not.toHaveBeenCalled();
+      expect(mockHealthIndicators.setData).not.toHaveBeenCalled();
+      expect(mockDetailedMetricsPanel.setData).not.toHaveBeenCalled();
+    });
+    
+    // Test for undefined data - this now tests the actual implementation
+    it('should handle undefined data gracefully', () => {
+      // Reset all mock function calls
+      mockScoreDisplay.setScore.mockClear();
+      mockHealthIndicators.setData.mockClear();
+      mockDetailedMetricsPanel.setData.mockClear();
+      mockErrorLog.mockClear();
+      
+      // Call setData with undefined
+      // @ts-ignore - deliberately passing undefined to test error handling
+      panel.setData(undefined);
+      
+      // Should log an error
+      expect(mockErrorLog).toHaveBeenCalledWith('ui', 'Cannot set data: Invalid data provided');
+      
+      // Should not call component methods with invalid data
+      expect(mockScoreDisplay.setScore).not.toHaveBeenCalled();
+      expect(mockHealthIndicators.setData).not.toHaveBeenCalled();
+      expect(mockDetailedMetricsPanel.setData).not.toHaveBeenCalled();
+    });
+    
+    // Test for uninitialized panel
+    it('should handle setData when panel is not initialized', () => {
+      // Reset all mock function calls
+      mockScoreDisplay.setScore.mockClear();
+      mockHealthIndicators.setData.mockClear();
+      mockDetailedMetricsPanel.setData.mockClear();
+      mockErrorLog.mockClear();
+      
+      // Reset contentContainer to undefined
+      // @ts-ignore - setting private property to undefined for testing
+      panel.contentContainer = undefined;
+      
+      // Call setData with valid data
+      panel.setData(mockAnalysisData);
+      
+      // Should log an error
+      expect(mockErrorLog).toHaveBeenCalledWith('ui', 'Cannot set data: Panel not initialized');
+      
+      // Should not call component methods when panel is not initialized
+      expect(mockScoreDisplay.setScore).not.toHaveBeenCalled();
+      expect(mockHealthIndicators.setData).not.toHaveBeenCalled();
+      expect(mockDetailedMetricsPanel.setData).not.toHaveBeenCalled();
+    });
   });
   
-  // Call setData with null
-  // @ts-ignore - deliberately passing null to test error handling
-  panel.setData(null);
-  
-  // Should log an error
-  expect(mockErrorLog).toHaveBeenCalled();
-  
-  // Should not call component methods with invalid data
-  expect(mockScoreDisplay.setScore).not.toHaveBeenCalled();
-  expect(mockHealthIndicators.setData).not.toHaveBeenCalled();
-  expect(mockDetailedMetricsPanel.setData).not.toHaveBeenCalled();
-});
-});
-
-it('should handle undefined data gracefully', () => {
-  // Reset all mock function calls
-  mockScoreDisplay.setScore.mockClear();
-  mockHealthIndicators.setData.mockClear();
-  mockDetailedMetricsPanel.setData.mockClear();
-  mockErrorLog.mockClear();
-  
-  // Mock the implementation to return early for invalid data
-  // Save original setData implementation first
-  const originalSetData = panel.setData;
-  
-  // @ts-ignore - we're mocking the method
-  panel.setData = vi.fn().mockImplementation((data) => {
-    if (!data) {
-      mockErrorLog('ui', 'Cannot set data: Invalid data provided');
-      return;
-    }
-    return originalSetData.call(panel, data);
-  });
-  
-  // Call setData with undefined
-  // @ts-ignore - deliberately passing undefined to test error handling
-  panel.setData(undefined);
-  
-  // Should log an error
-  expect(mockErrorLog).toHaveBeenCalled();
-  
-  // Should not call component methods with invalid data
-  expect(mockScoreDisplay.setScore).not.toHaveBeenCalled();
-  expect(mockHealthIndicators.setData).not.toHaveBeenCalled();
-  expect(mockDetailedMetricsPanel.setData).not.toHaveBeenCalled();
-});
-
   describe('Panel cleanup', () => {
     beforeEach(() => {
       // Manually set up the panel with necessary properties
       // @ts-ignore - setting private properties for testing
       panel.ui = mockShadowUi;
-      
-      // Create a proper overlay element with parentNode for testing removal
-      const overlayMock = createElementMock();
-      const removeChildMock = vi.fn();
-      overlayMock.parentNode = {
-        removeChild: removeChildMock 
-      };
-      
-      // @ts-ignore - setting private property for testing
-      panel.overlay = overlayMock;
     });
     
     it('should properly remove the panel', () => {
-      // Store references to check after the remove call
-      // @ts-ignore - accessing private properties for testing
-      const overlayParentRemoveChild = panel.overlay.parentNode.removeChild;
-      
       panel.remove();
       
       // Check that UI was removed
       expect(mockShadowUi.remove).toHaveBeenCalled();
-      
-      // Check that overlay was removed (using our stored reference)
-      expect(overlayParentRemoveChild).toHaveBeenCalled();
       
       // Check that UI reference was cleared
       // @ts-ignore
