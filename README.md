@@ -1,21 +1,35 @@
 # RateThisRepo
 
-A Chrome extension for analyzing GitHub repositories and providing quality metrics.
+A browser extension for analyzing GitHub repositories and providing quality metrics.
 
-## Project Structure
+## Features
 
-WXT-based extension with the following structure:
+- Analyzes GitHub repositories to provide quality metrics
+- Shows repository health indicators
+- Provides detailed scores for popularity, activity, community, maintenance, and documentation
+- Identifies strengths and areas for improvement
+- Offers comprehensive metrics with collapsible sections
+- Explains the scoring methodology
+- Works across multiple browsers (Chrome, Firefox, Edge)
+
+## Architecture
+
+RateThisRepo is built with WXT (Web Extension Tools), providing a modern, type-safe framework for browser extensions.
+
+### Project Structure
 
 ```
 ratethisrepo/
 ├── src/                 # Source code
 │   ├── analysis/        # Analysis algorithms and insights
-│   ├── entrypoints/     # Extension entrypoints (background, content, popup, options)
-│   │   ├── background.ts    # Background script
-│   │   ├── content.ts       # Content script for GitHub pages
+│   ├── assets/          # CSS and other assets
+│   ├── entrypoints/     # Extension entrypoints
+│   │   ├── background.ts    # Service worker script
+│   │   ├── content/         # Content scripts
 │   │   ├── options/         # Options page
 │   │   └── popup/           # Browser action popup
 │   ├── interfaces/      # TypeScript interfaces
+│   ├── services/        # Core services (messaging, storage, state)
 │   ├── ui/              # UI components
 │   │   ├── components/  # Reusable UI components
 │   │   ├── helpers/     # UI helper functions
@@ -23,41 +37,93 @@ ratethisrepo/
 │   └── utils/           # Utility functions and constants
 ├── public/              # Static assets
 │   └── icons/           # Extension icons
+├── tests/               # Test files
+│   └── unit/            # Unit tests
 ├── .wxt/                # WXT generated files
-├── package.json         # Project metadata and dependencies
-├── tsconfig.json        # TypeScript configuration
-└── wxt.config.ts        # WXT configuration
+├── wxt.config.ts        # WXT configuration
+└── tsconfig.json        # TypeScript configuration
 ```
 
+### Key Technical Features
+
+- **WXT Framework**: Modern build system and cross-browser compatibility
+- **Shadow DOM**: Complete UI isolation with encapsulated styles
+- **Tailwind CSS**: Utility-first styling with custom components
+- **TypeScript**: Type-safe development throughout the codebase
+- **Service Worker**: Reliable background processing with lifecycle management
+- **State Management**: Centralized state with event-based updates
+- **Messaging**: Type-safe communication between contexts
+
 ## Development
+
+### Prerequisites
+
+- Node.js 16+
+- pnpm 8+ (we use pnpm as our package manager for faster, more reliable builds)
 
 ### Setup
 
 ```bash
+# Install pnpm if you don't have it
+npm install -g pnpm
+
 # Install dependencies
-npm install
+pnpm install
 ```
 
-### Build
+### Development Commands
 
 ```bash
-# Development mode
-npm run dev
+# Development mode with hot reload
+pnpm dev
+
+# Development mode for Firefox
+pnpm dev:firefox
 
 # Build for production
-npm run build
+pnpm build
 
-# Check types
-npm run compile
+# Build for Firefox
+pnpm build:firefox
+
+# Create distribution zip
+pnpm zip
+
+# Create Firefox distribution zip
+pnpm zip:firefox
+
+# Check types without building
+pnpm check-types
+
+# Run tests
+pnpm test
+
+# Run tests with coverage
+pnpm test:coverage
+
+# Lint code
+pnpm lint
+
+# Fix linting issues
+pnpm lint:fix
 ```
 
 ### Loading the Extension
 
-1. Run `npm run build`
-2. Open Chrome and navigate to `chrome://extensions/`
+#### Chrome/Edge
+
+1. Run `pnpm build`
+2. Open Chrome/Edge and navigate to `chrome://extensions/` or `edge://extensions/`
 3. Enable "Developer mode"
 4. Click "Load unpacked"
 5. Select the `.output/chrome-mv3` folder from this project
+
+#### Firefox
+
+1. Run `pnpm build:firefox`
+2. Open Firefox and navigate to `about:debugging#/runtime/this-firefox`
+3. Click "Load Temporary Add-on"
+4. Select any file in the `.output/firefox-mv2` folder
 
 ## Styling Guidelines
 
@@ -110,11 +176,6 @@ container.classList.add(BUTTON_CLASSES.COMPONENT);
 button.classList.add(BUTTON_CLASSES.DEFAULT);
 ```
 
-## Features
+## License
 
-- Analyzes GitHub repositories to provide quality metrics
-- Shows repository health indicators
-- Provides detailed scores for popularity, activity, community, maintenance, and documentation
-- Identifies strengths and areas for improvement
-- Offers comprehensive metrics with collapsible sections
-- Explains the scoring methodology
+MIT
