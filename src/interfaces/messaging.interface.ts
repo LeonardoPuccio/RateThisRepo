@@ -1,5 +1,5 @@
 /**
- * Interfaces for the extension messaging system
+ * Messaging interfaces for type-safe communication between extension contexts
  */
 
 import { AnalysisResult } from '@/interfaces/analysis.interface';
@@ -7,17 +7,11 @@ import { AppState } from '@/services/StorageService';
 import { ACTIONS } from '@/utils/constants';
 
 /**
- * Base message interface
+ * Base structure for generic messages
  */
-export interface Message {
+export interface ActionMessage {
   action: string;
-}
-
-/**
- * Message to request repository analysis
- */
-export interface AnalyzeRepoMessage extends Message {
-  action: typeof ACTIONS.ANALYZE_REPO;
+  payload?: Record<string, unknown>;
 }
 
 /**
@@ -29,17 +23,48 @@ export interface AnalysisCompleteMessage extends Message {
 }
 
 /**
+ * Analysis response
+ */
+export interface AnalysisResponse extends SuccessResponse {
+  data?: unknown;
+}
+
+/**
+ * Message to request repository analysis
+ */
+export interface AnalyzeRepoMessage extends Message {
+  action: typeof ACTIONS.ANALYZE_REPO;
+}
+
+/**
+ * Response types for MessageService
+ */
+export interface ErrorResponse {
+  [key: string]: unknown;
+  error?: string;
+  reason?: string;
+  success: false;
+}
+
+/**
+ * Union type of all message types
+ */
+export type ExtensionMessage =
+  | AnalysisCompleteMessage
+  | AnalyzeRepoMessage
+  | GetStateMessage
+  | HidePanelMessage
+  | OptionsUpdatedMessage
+  | ShowPanelMessage
+  | TogglePanelMessage;
+
+// --- Preparation of more detailed interfaces for MessageService ---
+
+/**
  * Message to request current state
  */
 export interface GetStateMessage extends Message {
   action: typeof ACTIONS.GET_STATE;
-}
-
-/**
- * Message to show panel
- */
-export interface ShowPanelMessage extends Message {
-  action: typeof ACTIONS.SHOW_PANEL;
 }
 
 /**
@@ -50,10 +75,61 @@ export interface HidePanelMessage extends Message {
 }
 
 /**
- * Message to toggle panel
+ * Interface for MessageService
  */
-export interface TogglePanelMessage extends Message {
-  action: typeof ACTIONS.TOGGLE_PANEL;
+export interface IMessageService {
+  /**
+   * Clean up resources
+   */
+  destroy(): void;
+
+  /**
+   * Register a handler for a specific action
+   */
+  registerHandler(action: string, handler: MessageHandler): void;
+
+  /**
+   * Send a message to the extension
+   */
+  sendMessage<T extends MessageResponse>(message: ExtensionMessage): Promise<T>;
+
+  /**
+   * Send a message to a specific tab
+   */
+  sendTabMessage<T extends MessageResponse>(tabId: number, message: ExtensionMessage): Promise<T>;
+
+  /**
+   * Remove a handler for a specific action
+   */
+  unregisterHandler(action: string, handler: MessageHandler): void;
+}
+
+/**
+ * Base message interface
+ */
+export interface Message {
+  action: string;
+}
+
+/**
+ * Handler type for message actions
+ */
+export type MessageHandler = (
+  message: ActionMessage | ExtensionMessage | Message,
+  sender: Browser.runtime.MessageSender,
+  sendResponse: (response?: MessageResponse) => void
+) => boolean | Promise<unknown> | void;
+
+export type MessageResponse = AppState | ErrorResponse | SuccessResponse;
+
+/**
+ * Information about the message sender
+ */
+export interface MessageSender {
+  id?: string;
+  tab?: {
+    id?: number;
+  };
 }
 
 /**
@@ -64,69 +140,37 @@ export interface OptionsUpdatedMessage extends Message {
 }
 
 /**
- * Union type of all message types
+ * Panel visibility response
  */
-export type ExtensionMessage =
-  | AnalyzeRepoMessage
-  | AnalysisCompleteMessage
-  | GetStateMessage
-  | ShowPanelMessage
-  | HidePanelMessage
-  | TogglePanelMessage
-  | OptionsUpdatedMessage;
+export interface PanelVisibilityResponse extends SuccessResponse {
+  isPanelVisible: boolean;
+  reason?: string;
+}
 
 /**
- * Response types
+ * Callback function for responses to messages
+ */
+export type ResponseCallback = (response?: unknown) => void;
+
+/**
+ * Message to show panel
+ */
+export interface ShowPanelMessage extends Message {
+  action: typeof ACTIONS.SHOW_PANEL;
+}
+
+/**
+ * Standard response structure for most message handlers
  */
 export interface SuccessResponse {
-  success: true;
-  [key: string]: any;
-}
-
-export interface ErrorResponse {
-  success: false;
+  [key: string]: unknown;
   error?: string;
-  reason?: string;
-  [key: string]: any;
+  success: boolean;
 }
 
-export type MessageResponse = SuccessResponse | ErrorResponse | AppState;
-
 /**
- * Handler type for message actions
+ * Message to toggle panel
  */
-export type MessageHandler = (
-  message: any,
-  sender: Browser.runtime.MessageSender,
-  sendResponse: (response?: any) => void
-) => boolean | void | Promise<any>;
-
-/**
- * Interface for MessageService
- */
-export interface IMessageService {
-  /**
-   * Register a handler for a specific action
-   */
-  registerHandler(action: string, handler: MessageHandler): void;
-  
-  /**
-   * Remove a handler for a specific action
-   */
-  unregisterHandler(action: string, handler: MessageHandler): void;
-  
-  /**
-   * Send a message to the extension
-   */
-  sendMessage<T extends MessageResponse>(message: ExtensionMessage): Promise<T>;
-  
-  /**
-   * Send a message to a specific tab
-   */
-  sendTabMessage<T extends MessageResponse>(tabId: number, message: ExtensionMessage): Promise<T>;
-  
-  /**
-   * Clean up resources
-   */
-  destroy(): void;
+export interface TogglePanelMessage extends Message {
+  action: typeof ACTIONS.TOGGLE_PANEL;
 }
