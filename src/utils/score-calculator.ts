@@ -48,7 +48,7 @@ export class ScoreCalculator {
                            this.data.daysSinceLastUpdate < 30 ? 12 - 2 * (this.data.daysSinceLastUpdate - 7) / (30 - 7) :
                            this.data.daysSinceLastUpdate < 90 ? 10 - 3 * (this.data.daysSinceLastUpdate - 30) / (90 - 30) :
                            this.data.daysSinceLastUpdate < 180 ? 7 - 4 * (this.data.daysSinceLastUpdate - 90) / (180 - 90) :
-                           this.data.daysSinceLastUpdate < 365 ? 3 - 3 * (this.data.daysSinceLastUpdate * 180) / (365 - 180) : 0;
+                           this.data.daysSinceLastUpdate < 365 ? 3 - 3 * (this.data.daysSinceLastUpdate - 180) / (365 - 180) : 0;
                            
     const recentActivityBonus = Math.min(5, this.data.recentCommits > 20 ? 5 : this.data.recentCommits / 4);
     
@@ -75,7 +75,7 @@ export class ScoreCalculator {
     const readmeLengthBonus = this.data.hasReadme && this.data.readmeLength > 500 ? 5 : 
                             this.data.hasReadme && this.data.readmeLength > 100 ? 5 * (this.data.readmeLength - 100) / 400 : 0;
     const descriptionBonus = this.data.description && this.data.description.length > 50 ? 5 :
-                           this.data.description && this.data.description.length > 20 ? 3 + 2 * (this.data.description.length - 20) / 30 : 0;
+                           this.data.description && this.data.description.length > 20 ? 3 + 2 * (this.data.description.length - 20) / 30 :
                            this.data.description && this.data.description.length > 10 ? 3 * (this.data.description.length - 10) / 10 : 0;
     
     scoreDetails.documentation = Math.min(20, (
