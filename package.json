@@ -2,7 +2,7 @@
   "name": "ratethisrepo",
   "description": "Repository analyzer: because in repositories, it's not just size that matters",
   "private": true,
-  "version": "0.2.0",
+  "version": "0.3.0",
   "type": "module",
   "scripts": {
     "dev": "wxt",
