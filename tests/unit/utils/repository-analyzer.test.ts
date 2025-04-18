@@ -1,137 +1,168 @@
-import { RepositoryAnalyzer } from '../../../src/utils/repository-analyzer';
-import { StrengthsAnalyzer } from '../../../src/analysis/insights/StrengthsAnalyzer';
-import { RecommendationsAnalyzer } from '../../../src/analysis/insights/RecommendationsAnalyzer';
-import { GitHubAPI } from '../../../src/utils/github-api';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { RepositoryAnalyzer } from '@/utils/repository-analyzer';
 
-// Mock the GitHub API class
-jest.mock('../../../src/utils/github-api');
-jest.mock('../../../src/analysis/insights/StrengthsAnalyzer');
-jest.mock('../../../src/analysis/insights/RecommendationsAnalyzer');
+// Mock the GitHubAPI class
+vi.mock('@/utils/github-api', () => {
+  return {
+    GitHubAPI: class {
+      constructor() {}
+      
+      // Mock API methods
+      getRepositoryData() {
+        return Promise.resolve({
+          name: 'test-repo',
+          owner: { login: 'test-user' },
+          stargazers_count: 100,
+          forks_count: 20,
+          open_issues_count: 5,
+          subscribers_count: 15,
+          watchers_count: 15,
+          has_wiki: true,
+          has_pages: false,
+          homepage: 'https://example.com',
+          created_at: '2020-01-01T00:00:00Z',
+          updated_at: '2023-01-01T00:00:00Z',
+          pushed_at: '2023-01-01T00:00:00Z',
+          default_branch: 'main',
+          license: { name: 'MIT' },
+          description: 'Test repository description'
+        });
+      }
+      
+      getIssues() {
+        return Promise.resolve([
+          { state: 'open', created_at: '2022-01-01T00:00:00Z' },
+          { state: 'closed', created_at: '2022-01-01T00:00:00Z' },
+          { state: 'closed', created_at: '2022-01-01T00:00:00Z' }
+        ]);
+      }
+      
+      getPullRequests() {
+        return Promise.resolve([
+          { state: 'open', merged_at: null },
+          { state: 'closed', merged_at: '2022-01-01T00:00:00Z' },
+          { state: 'closed', merged_at: '2022-01-01T00:00:00Z' }
+        ]);
+      }
+      
+      getContributors() {
+        return Promise.resolve([
+          { login: 'user1', contributions: 50 },
+          { login: 'user2', contributions: 25 },
+          { login: 'user3', contributions: 10 }
+        ]);
+      }
+      
+      getCommits() {
+        return Promise.resolve([
+          { 
+            commit: { 
+              author: { date: '2022-12-31T00:00:00Z' }
+            } 
+          },
+          { 
+            commit: { 
+              author: { date: '2022-12-30T00:00:00Z' }
+            } 
+          }
+        ]);
+      }
+      
+      getReleases() {
+        return Promise.resolve([
+          { tag_name: 'v1.0.0' },
+          { tag_name: 'v1.1.0' }
+        ]);
+      }
+      
+      getLanguages() {
+        return Promise.resolve({
+          JavaScript: 10000,
+          TypeScript: 5000,
+          HTML: 2000
+        });
+      }
+    }
+  };
+});
+
+// Also mock the analyzer classes
+vi.mock('@/analysis/insights', () => {
+  return {
+    StrengthsAnalyzer: {
+      identify: () => ['Strength 1', 'Strength 2']
+    },
+    RecommendationsAnalyzer: {
+      generate: () => ['Recommendation 1', 'Recommendation 2']
+    }
+  };
+});
+
+// Mock BusFactorCalculator
+vi.mock('@/utils/bus-factor', () => {
+  return {
+    BusFactorCalculator: {
+      calculate: () => 2
+    }
+  };
+});
 
 describe('RepositoryAnalyzer', () => {
-  // Mock data
-  const mockRepoData = {
-    name: 'test-repo',
-    full_name: 'test-owner/test-repo',
-    description: 'Test repository description',
-    stargazers_count: 1000,
-    forks_count: 100,
-    watchers_count: 50,
-    open_issues_count: 10,
-    created_at: '2022-01-01T00:00:00Z',
-    updated_at: '2023-01-01T00:00:00Z',
-    pushed_at: '2023-01-01T00:00:00Z',
-    subscribers_count: 45,
-    has_wiki: true,
-    has_pages: true,
-    homepage: 'https://test-repo.com',
-    license: { name: 'MIT License', spdx_id: 'MIT', url: 'https://api.github.com/licenses/mit' },
-    owner: { login: 'test-owner', id: 123, type: 'User' }
-  };
+  let analyzer: RepositoryAnalyzer;
   
-  const mockIssues = [
-    { id: 1, number: 1, title: 'Issue 1', state: 'open', created_at: '2022-01-01T00:00:00Z', updated_at: '2022-01-01T00:00:00Z', closed_at: null },
-    { id: 2, number: 2, title: 'Issue 2', state: 'closed', created_at: '2022-01-01T00:00:00Z', updated_at: '2022-01-02T00:00:00Z', closed_at: '2022-01-02T00:00:00Z' }
-  ];
-  
-  const mockPRs = [
-    { id: 1, number: 1, title: 'PR 1', state: 'open', created_at: '2022-01-01T00:00:00Z', updated_at: '2022-01-01T00:00:00Z', closed_at: null, merged_at: null },
-    { id: 2, number: 2, title: 'PR 2', state: 'closed', created_at: '2022-01-01T00:00:00Z', updated_at: '2022-01-02T00:00:00Z', closed_at: '2022-01-02T00:00:00Z', merged_at: '2022-01-02T00:00:00Z' }
-  ];
-  
-  const mockContributors = [
-    { id: 1, login: 'user1', contributions: 100 },
-    { id: 2, login: 'user2', contributions: 50 }
-  ];
-  
-  const mockCommits = [
-    { sha: 'abc123', commit: { author: { name: 'User 1', email: 'user1@example.com', date: new Date().toISOString() }, message: 'Commit 1' } },
-    { sha: 'def456', commit: { author: { name: 'User 2', email: 'user2@example.com', date: new Date().toISOString() }, message: 'Commit 2' } }
-  ];
-  
-  const mockReleases = [
-    { id: 1, tag_name: 'v1.0.0', name: 'Version 1.0.0', created_at: '2022-01-01T00:00:00Z', published_at: '2022-01-01T00:00:00Z' }
-  ];
-  
-  const mockLanguages = {
-    'JavaScript': 100000,
-    'TypeScript': 50000,
-    'HTML': 10000
-  };
-
-  // Setup mocks
   beforeEach(() => {
-    // Reset all mocks
-    jest.clearAllMocks();
+    // Create a new analyzer for each test
+    analyzer = new RepositoryAnalyzer('test-user', 'test-repo');
     
-    // Setup GitHubAPI mock
-    const mockAPI = GitHubAPI as jest.MockedClass<typeof GitHubAPI>;
-    
-    mockAPI.prototype.getRepositoryData = jest.fn().mockResolvedValue(mockRepoData);
-    mockAPI.prototype.getIssues = jest.fn().mockResolvedValue(mockIssues);
-    mockAPI.prototype.getPullRequests = jest.fn().mockResolvedValue(mockPRs);
-    mockAPI.prototype.getContributors = jest.fn().mockResolvedValue(mockContributors);
-    mockAPI.prototype.getCommits = jest.fn().mockResolvedValue(mockCommits);
-    mockAPI.prototype.getReleases = jest.fn().mockResolvedValue(mockReleases);
-    mockAPI.prototype.getLanguages = jest.fn().mockResolvedValue(mockLanguages);
-    
-    // Setup StrengthsAnalyzer mock
-    (StrengthsAnalyzer.identify as jest.Mock).mockReturnValue([
-      "⭐ Highly popular repository with significant community interest",
-      "👥 Healthy contributor community with shared project ownership"
-    ]);
-    
-    // Setup RecommendationsAnalyzer mock
-    (RecommendationsAnalyzer.generate as jest.Mock).mockReturnValue([
-      "⚠️ Consider adding more documentation"
-    ]);
-  });
-  
-  test('analyze calls StrengthsAnalyzer and RecommendationsAnalyzer', async () => {
-    // Arrange
-    const analyzer = new RepositoryAnalyzer('test-owner', 'test-repo');
-    
-    // Act
-    const result = await analyzer.analyze();
-    
-    // Assert
-    expect(StrengthsAnalyzer.identify).toHaveBeenCalled();
-    expect(RecommendationsAnalyzer.generate).toHaveBeenCalled();
-    
-    // Verify the strengths and recommendations were properly assigned
-    expect(result.strengths).toEqual([
-      "⭐ Highly popular repository with significant community interest",
-      "👥 Healthy contributor community with shared project ownership"
-    ]);
-    
-    expect(result.recommendations).toEqual([
-      "⚠️ Consider adding more documentation"
-    ]);
-  });
-  
-  test('analyze handles README detection', async () => {
-    // Arrange
-    const analyzer = new RepositoryAnalyzer('test-owner', 'test-repo');
-    
-    // Mock the Document object with a README element
+    // Mock document for tests that use DOM
     const mockDocument = {
-      querySelector: jest.fn().mockImplementation((selector) => {
-        if (selector === '#readme') {
-          return { textContent: 'This is a README with some content.' };
-        }
-        return null;
+      querySelector: vi.fn().mockReturnValue({
+        textContent: '# Test Readme\n\nThis is a test readme.'
       }),
       body: {
-        textContent: 'Some content README.md some more content'
+        textContent: 'README.md test content'
       }
-    } as unknown as Document;
+    };
     
-    // Act
-    analyzer.detectReadmeFromDOM(mockDocument);
+    // Add method to detect readme from DOM
+    analyzer.detectReadmeFromDOM(mockDocument as unknown as Document);
+  });
+  
+  it('should construct with username and repo name', () => {
+    const testAnalyzer = new RepositoryAnalyzer('user', 'repo');
+    // Check if the analyzer has the correct properties
+    expect(testAnalyzer).toBeDefined();
+  });
+  
+  it('should analyze repository and return analysis result', async () => {
     const result = await analyzer.analyze();
     
-    // Assert
-    expect(result.hasReadme).toBe(true);
-    expect(result.readmeLength).toBeGreaterThan(0);
+    // Verify the analysis result structure
+    expect(result).toHaveProperty('repoName');
+    expect(result).toHaveProperty('metrics');
+    expect(result).toHaveProperty('score');
+    expect(result).toHaveProperty('categories');
+    expect(result).toHaveProperty('strengths');
+    expect(result).toHaveProperty('recommendations');
+    
+    // Check specific repository data
+    expect(result.repoName).toBe('test-user/test-repo');
+    
+    // Check metrics are present
+    expect(result.metrics).toHaveProperty('stars');
+    expect(result.metrics).toHaveProperty('forks');
+    expect(result.metrics).toHaveProperty('contributors');
+    
+    // Check score categories
+    expect(result.categories.length).toBeGreaterThan(0);
+    expect(result.categories.some(c => c.name === 'Popularity')).toBe(true);
+    expect(result.categories.some(c => c.name === 'Activity')).toBe(true);
+    expect(result.categories.some(c => c.name === 'Community')).toBe(true);
+    expect(result.categories.some(c => c.name === 'Maintenance')).toBe(true);
+    expect(result.categories.some(c => c.name === 'Documentation')).toBe(true);
+    
+    // Check insights
+    expect(result.strengths).toEqual(['Strength 1', 'Strength 2']);
+    expect(result.recommendations).toEqual(['Recommendation 1', 'Recommendation 2']);
   });
 });

@@ -1,4 +1,4 @@
-import { ReleaseData } from '../../interfaces/repository.interface';
+import { ReleaseData } from '@/interfaces/repository.interface';
 
 /**
  * StrengthsAnalyzer identifies the strengths of a GitHub repository

@@ -1,0 +1,132 @@
+/* RateThisRepo TailwindCSS integration for Shadow DOM */
+@import "tailwindcss";
+
+/* Shadow DOM reset for proper style containment */
+:host {
+  all: initial;
+  display: block;
+  contain: layout style;
+  box-sizing: border-box;
+  overflow: visible !important;
+}
+
+/* Base component containment for shadow DOM elements */
+.rtr-component {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+  color: #24292e;
+  box-sizing: border-box;
+  overflow: visible;
+}
+
+/* Status color utilities - for consistent usage across components */
+.rtr-success { color: #2ea44f; }
+.rtr-warning { color: #f5a623; }
+.rtr-error { color: #d73a49; }
+
+.rtr-bg-success { background-color: #2ea44f; }
+.rtr-bg-warning { background-color: #f5a623; }
+.rtr-bg-error { background-color: #d73a49; }
+
+.rtr-bg-success-light { background-color: rgba(46, 164, 79, 0.1); }
+.rtr-bg-warning-light { background-color: rgba(245, 166, 35, 0.1); }
+.rtr-bg-error-light { background-color: rgba(215, 58, 73, 0.1); }
+
+.rtr-border-success { border-color: #2ea44f; }
+.rtr-border-warning { border-color: #f5a623; }
+.rtr-border-error { border-color: #d73a49; }
+
+/* Custom animations compatible with Tailwind approach */
+@keyframes rtr-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(46, 164, 79, 0.7);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(46, 164, 79, 0);
+    transform: scale(1.05);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(46, 164, 79, 0);
+    transform: scale(1);
+  }
+}
+
+/* Button container with padding to accommodate pulse animation */
+.rtr-button-container {
+  position: relative;
+  padding: 6px;
+  overflow: visible;
+}
+
+.rtr-animate-pulse {
+  animation: rtr-pulse 2s infinite;
+}
+
+/* Button states for toggle button */
+.rtr-button-active {
+  background-color: #d73a49;
+  animation: none;
+}
+
+.rtr-button-default {
+  background-color: #2ea44f;
+  animation: rtr-pulse 2s infinite;
+}
+
+/* Tooltip styles */
+.rtr-tooltip {
+  position: absolute;
+  visibility: hidden;
+  opacity: 0;
+  background-color: #24292e;
+  color: white;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  transition: opacity 0.3s;
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 10000;
+}
+
+.rtr-tooltip.visible {
+  visibility: visible;
+  opacity: 1;
+}
+
+/* Bar style for metrics (can be converted to Tailwind later) */
+.rtr-bar {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.rtr-bar.success { background-color: #2ea44f; }
+.rtr-bar.warning { background-color: #f5a623; }
+.rtr-bar.error { background-color: #d73a49; }
+
+/* Score circle styles */
+.rtr-score-circle {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-width: 3px;
+  border-style: solid;
+}
+
+.rtr-score-circle.success { border-color: #2ea44f; }
+.rtr-score-circle.warning { border-color: #f5a623; }
+.rtr-score-circle.error { border-color: #d73a49; }
+
+/* Indicator styles for health metrics */
+.rtr-indicator.success { background-color: rgba(46, 164, 79, 0.1); }
+.rtr-indicator.success svg { color: #2ea44f; }
+
+.rtr-indicator.warning { background-color: rgba(245, 166, 35, 0.1); }
+.rtr-indicator.warning svg { color: #f5a623; }
+
+.rtr-indicator.error { background-color: rgba(215, 58, 73, 0.1); }
+.rtr-indicator.error svg { color: #d73a49; }

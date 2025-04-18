@@ -1,17 +1,25 @@
 # Analysis Module
 
-This module contains components for analyzing GitHub repositories and generating insights.
+This module contains the repository analysis components that evaluate different aspects of a GitHub repository.
 
 ## Structure
 
-- `insights/` - Classes for generating repository insights
-  - `StrengthsAnalyzer.ts` - Identifies repository strengths based on metrics
-  - `RecommendationsAnalyzer.ts` - Generates improvement recommendations based on metrics
+- `/insights`: Contains analyzers for identifying repository strengths and recommendations
+  - `StrengthsAnalyzer.ts`: Identifies positive aspects of a repository
+  - `RecommendationsAnalyzer.ts`: Generates improvement suggestions based on repository metrics
 
-## Future Additions
+## Core Analysis Components
 
-In future refactoring, this module will contain more components:
+The analysis module works with the utility classes in `/utils` directory, including:
 
-- Metrics calculation services for different aspects (popularity, activity, etc.)
-- Repository data processing services
-- Analysis configuration services
+- `RepositoryAnalyzer`: Main class for collecting and analyzing GitHub repository data
+- `ScoreCalculator`: Calculates quality scores based on repository metrics
+- `BusFactorCalculator`: Evaluates contributor distribution and project sustainability
+- `GitHubAPI`: Handles API requests to GitHub
+
+## Analysis Process
+
+1. Repository data is collected via the GitHubAPI class
+2. Raw metrics are transformed into meaningful scores and indicators
+3. Insights are generated to identify strengths and recommendations
+4. A comprehensive analysis report is produced with quality scores and detailed metrics
