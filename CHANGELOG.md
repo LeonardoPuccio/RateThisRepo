@@ -2,7 +2,7 @@
 
 All notable changes to the RateThisRepo extension will be documented in this file.
 
-## [0.3.0] - Unreleased
+## [0.3.0] - 2025-04-18
 
 ### Added
 - WXT framework migration for cross-browser compatibility
