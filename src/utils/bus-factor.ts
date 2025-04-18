@@ -1,4 +1,4 @@
-import { ContributorData } from '../interfaces/repository.interface';
+import { ContributorData } from '@/interfaces/repository.interface';
 
 /**
  * Calculates the bus factor of a repository

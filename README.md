@@ -1,105 +1,6 @@
 # RateThisRepo
-For when size really doesn't matter
 
-A Chrome extension for analyzing GitHub repositories and providing quality metrics.
-
-## Project Structure
-
-```
-ratethisrepo/
-├── dist/                # Built extension files (load this folder in Chrome)
-├── icons/               # Extension icons
-├── scripts/             # Utility scripts
-├── src/                 # Source code
-│   ├── analysis/        # Analysis algorithms and insights
-│   │   └── insights/    # Strengths and recommendations analyzers
-│   ├── interfaces/      # TypeScript interfaces
-│   ├── options/         # Options page UI files
-│   ├── popup/           # Popup UI files
-│   ├── ui/              # UI components
-│   │   ├── components/  # Main UI components
-│   │   │   ├── metrics/ # Detailed metrics components
-│   │   │   │   └── cards/ # Specialized metric card components
-│   │   ├── helpers/     # UI helper functions
-│   │   └── services/    # UI services (styles, drag)
-│   ├── utils/           # Utility functions
-│   ├── background.ts    # Extension background script
-│   ├── config.ts        # Global configuration and debug settings
-│   ├── constants.ts     # Shared constants
-│   ├── content.ts       # Content script injected into GitHub pages
-│   └── manifest.json    # Extension manifest
-├── tests/               # Test files
-│   ├── unit/            # Unit tests
-│   └── utils/           # Test utilities
-├── .gitignore           # Git ignore file
-├── jest.config.js       # Jest configuration
-├── package.json         # Node.js dependencies and scripts
-├── tsconfig.json        # TypeScript configuration
-└── webpack.config.js    # Webpack configuration
-```
-
-## Development
-
-### Setup
-
-```bash
-# Install dependencies
-npm install
-```
-
-### Build
-
-```bash
-# Build the extension for production
-npm run build
-
-# Build for development with debugging enabled
-npm run build:dev
-
-# Watch for changes during development
-npm run dev
-
-# Type check without compiling
-npm run check-types
-
-# Run tests
-npm run test
-```
-
-### Version Management
-
-```bash
-# Increment patch version (0.2.0 → 0.2.1)
-npm run version:patch
-
-# Increment minor version (0.2.0 → 0.3.0)
-npm run version:minor
-
-# Increment major version (0.2.0 → 1.0.0)
-npm run version:major
-```
-
-### Loading the Extension
-
-1. Open Chrome and navigate to `chrome://extensions/`
-2. Enable "Developer mode"
-3. Click "Load unpacked"
-4. Select the `dist` folder from this project
-
-## Architecture
-
-The extension follows a component-based architecture with clear separation of concerns:
-
-- **Analysis Engine**: Evaluates repository metrics and generates insights
-- **UI Components**: Modular components for displaying analysis results
-- **Utility Services**: Helper functions and services for specific tasks
-
-### Key Components
-
-- **AnalysisPanel**: Main container for the analysis results
-- **HealthIndicators**: Displays repository health status indicators
-- **DetailedMetricsPanel**: Coordinates display of metrics and insights
-- **Specialized Cards**: Individual components for specific metric displays
+A browser extension for analyzing GitHub repositories and providing quality metrics.
 
 ## Features
 
@@ -109,35 +10,171 @@ The extension follows a component-based architecture with clear separation of co
 - Identifies strengths and areas for improvement
 - Offers comprehensive metrics with collapsible sections
 - Explains the scoring methodology
-- Options page to customize UI elements
-- Development/production build modes with debugging utilities
+- Works across multiple browsers (Chrome, Firefox, Edge)
 
-## Changelog
+## Architecture
 
-### 0.2.0 (March 29, 2025)
+RateThisRepo is built with WXT (Web Extension Tools), providing a modern, type-safe framework for browser extensions.
 
-#### Added
-- Options page with toggle for floating button visibility
-- Debug utilities and separate build modes for development/production
-- Improved state synchronization between popup and content script
-- Version management scripts for easier versioning
-- Environment-based configuration system
-- Better storage handling for state persistence
+### Project Structure
 
-#### Fixed
-- Fixed synchronization issues between popup and floating button
-- Fixed panel state persistence between page reloads
+```
+ratethisrepo/
+├── src/                 # Source code
+│   ├── analysis/        # Analysis algorithms and insights
+│   ├── assets/          # CSS and other assets
+│   ├── entrypoints/     # Extension entrypoints
+│   │   ├── background.ts    # Service worker script
+│   │   ├── content/         # Content scripts
+│   │   ├── options/         # Options page
+│   │   └── popup/           # Browser action popup
+│   ├── interfaces/      # TypeScript interfaces
+│   ├── services/        # Core services (messaging, storage, state)
+│   ├── ui/              # UI components
+│   │   ├── components/  # Reusable UI components
+│   │   ├── helpers/     # UI helper functions
+│   │   └── services/    # UI services
+│   └── utils/           # Utility functions and constants
+├── public/              # Static assets
+│   └── icons/           # Extension icons
+├── tests/               # Test files
+│   └── unit/            # Unit tests
+├── .wxt/                # WXT generated files
+├── wxt.config.ts        # WXT configuration
+└── tsconfig.json        # TypeScript configuration
+```
 
-### 0.1.0 (March 28, 2025)
+### Key Technical Features
 
-#### Added
-- Initial release with GitHub repository analysis
-- Refactored UI components for better maintainability
-- Standardized UI component rendering approach
-- Implemented component-based architecture
-- Added collapsible metric panels
-- Detailed repository health indicators
-- Comprehensive scoring system for repository quality
+- **WXT Framework**: Modern build system and cross-browser compatibility
+- **Shadow DOM**: Complete UI isolation with encapsulated styles
+- **Tailwind CSS**: Utility-first styling with custom components
+- **TypeScript**: Type-safe development throughout the codebase
+- **Service Worker**: Reliable background processing with lifecycle management
+- **State Management**: Centralized state with event-based updates
+- **Messaging**: Type-safe communication between contexts
+
+## Development
+
+### Prerequisites
+
+- Node.js 16+
+- pnpm 8+ (we use pnpm as our package manager for faster, more reliable builds)
+
+### Setup
+
+```bash
+# Install pnpm if you don't have it
+npm install -g pnpm
+
+# Install dependencies
+pnpm install
+```
+
+### Development Commands
+
+```bash
+# Development mode with hot reload
+pnpm dev
+
+# Development mode for Firefox
+pnpm dev:firefox
+
+# Build for production
+pnpm build
+
+# Build for Firefox
+pnpm build:firefox
+
+# Create distribution zip
+pnpm zip
+
+# Create Firefox distribution zip
+pnpm zip:firefox
+
+# Check types without building
+pnpm check-types
+
+# Run tests
+pnpm test
+
+# Run tests with coverage
+pnpm test:coverage
+
+# Lint code
+pnpm lint
+
+# Fix linting issues
+pnpm lint:fix
+```
+
+### Loading the Extension
+
+#### Chrome/Edge
+
+1. Run `pnpm build`
+2. Open Chrome/Edge and navigate to `chrome://extensions/` or `edge://extensions/`
+3. Enable "Developer mode"
+4. Click "Load unpacked"
+5. Select the `.output/chrome-mv3` folder from this project
+
+#### Firefox
+
+1. Run `pnpm build:firefox`
+2. Open Firefox and navigate to `about:debugging#/runtime/this-firefox`
+3. Click "Load Temporary Add-on"
+4. Select any file in the `.output/firefox-mv2` folder
+
+## Styling Guidelines
+
+The extension uses TailwindCSS integrated with Shadow DOM for isolated styling. This approach prevents our styles from affecting the GitHub page and vice versa.
+
+### CSS Class Naming Convention
+
+- Use Tailwind utility classes for general styling (spacing, colors, layout)
+- Use `rtr-` prefixed classes for custom behaviors and components
+- Example: `<div class="flex items-center p-2 rtr-bg-success-light">...</div>`
+
+### Shadow DOM Integration
+
+- All UI components use WXT's `createShadowRootUi` with `cssInjectionMode: 'ui'`
+- Add `BUTTON_CLASSES.COMPONENT` to container elements for base styling
+- Set `overflow: visible` on shadow hosts to prevent animation clipping
+
+### Status Classes
+
+Use these semantic classes for consistent color coding:
+
+| Status | Text | Background | Light Background | Border |
+|--------|------|------------|------------------|--------|
+| Success | `rtr-success` | `rtr-bg-success` | `rtr-bg-success-light` | `rtr-border-success` |
+| Warning | `rtr-warning` | `rtr-bg-warning` | `rtr-bg-warning-light` | `rtr-border-warning` |
+| Error | `rtr-error` | `rtr-bg-error` | `rtr-bg-error-light` | `rtr-border-error` |
+
+### Animation Classes
+
+- `rtr-animate-pulse`: For pulsing animations
+- `rtr-button-active`: For active toggle state
+- `rtr-button-default`: For default toggle state
+
+### Component Styling
+
+- `rtr-component`: Base class for all containers in Shadow DOM
+- `rtr-button-container`: Container for buttons with proper spacing for animations
+- `rtr-tooltip`: Class for tooltips with standard styling
+- `rtr-bar`: Progress bar with transitions
+
+### How to Use
+
+Import the constants from `ui/styles/button-animations.ts`:
+
+```typescript
+import { BUTTON_CLASSES } from '@/ui/styles/button-animations';
+
+// In your component:
+container.classList.add(BUTTON_CLASSES.COMPONENT);
+button.classList.add(BUTTON_CLASSES.DEFAULT);
+```
 
 ## License
 

@@ -1,248 +1,339 @@
-import { AnalysisResult } from '../../interfaces/analysis.interface';
-import { StyleService } from '../services/StyleService';
-import { DragService } from '../services/DragService';
+import { AnalysisResult } from '@/interfaces/analysis.interface';
+import { DragService } from '@/ui/services/DragService';
 import { DetailedMetricsPanel } from './DetailedMetricsPanel';
 import { HealthIndicators } from './HealthIndicators';
 import { ScoreDisplay } from './ScoreDisplay';
-import { IconHelper } from '../helpers/IconHelper';
-
-// Debug mode flag - set to true only during development
-const DEBUG_MODE = false;
+import { IconHelper } from '@/ui/helpers/IconHelper';
+import { StateManager } from '@/services/StateManager';
+import {
+  createShadowRootUi,
+  ShadowRootContentScriptUi,
+} from 'wxt/utils/content-script-ui/shadow-root';
+import { ContentScriptContext } from 'wxt/utils/content-script-context';
+import { AnalysisPanelMountData } from '@/ui/interfaces/ui-interfaces';
+import { BUTTON_CLASSES } from '@/ui/styles/button-animations';
+import { DEBUG_MODE, errorLog, debugLog } from '@/utils/config';
 
 /**
  * AnalysisPanel component responsible for showing analysis results
  */
 export class AnalysisPanel {
-  // Using definite assignment assertion (!) to tell TypeScript these will be initialized
-  private panel!: HTMLElement;
+  private ui: ShadowRootContentScriptUi<AnalysisPanelMountData> | null = null;
   private contentContainer!: HTMLElement;
   private headerBar!: HTMLElement;
-  private dragService: DragService;
+  private dragService!: DragService;
   private scoreDisplay!: ScoreDisplay;
   private healthIndicators!: HealthIndicators;
   private detailedMetricsPanel!: DetailedMetricsPanel;
-  
+  private closeCallback?: () => void;
+  private ctx: ContentScriptContext;
+  private internalOverlay: HTMLElement | null = null;
+
   /**
    * Create a new analysis panel
+   * @param closeCallback Optional callback that will be called when the panel is closed
+   * @param ctx ContentScriptContext from WXT, required for proper operation
    */
-  constructor() {
-    // Initialize StyleService
-    StyleService.getInstance().addPanelStyles();
-    
-    // Create panel elements
-    this.createPanelElements();
-    
-    // Setup drag functionality
-    this.dragService = new DragService(this.panel, this.headerBar);
+  constructor(closeCallback: (() => void) | undefined, ctx: ContentScriptContext) {
+    this.closeCallback = closeCallback;
+    this.ctx = ctx;
+    debugLog('ui', 'Creating AnalysisPanel with shadow DOM and Tailwind CSS');
   }
-  
+
   /**
-   * Create panel elements
+   * Initialize the UI components
+   * Must be called after construction and before using the panel
    */
-  private createPanelElements(): void {
-    // Create container with direct DOM manipulation
-    this.panel = document.createElement('div');
-    this.panel.id = 'repo-evaluator-panel';
-    this.panel.style.cssText = `
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      width: 80%;
-      max-width: 800px;
-      max-height: 90vh;
-      background: #fff;
-      border-radius: 8px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
-      z-index: 10000;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-      overflow: hidden;
-      color: #24292e;
-    `;
-    
+  public async initialize(): Promise<void> {
+    try {
+      // Create the shadow root UI using WXT's API
+      this.ui = await createShadowRootUi(this.ctx, {
+        name: 'repo-evaluator-panel',
+        position: 'inline',
+        anchor: 'body',
+        mode: 'open',
+        onMount: (container, shadow, shadowHost) => {
+          debugLog('ui', 'Mounting AnalysisPanel UI');
+
+          // Add component base class
+          container.classList.add(BUTTON_CLASSES.COMPONENT);
+
+          // Apply fixed positioning to the host element
+          shadowHost.style.position = 'fixed';
+          shadowHost.style.top = '0';
+          shadowHost.style.left = '0';
+          shadowHost.style.width = '100vw';
+          shadowHost.style.height = '100vh';
+          shadowHost.style.pointerEvents = 'none'; // Let events pass through by default
+          shadowHost.style.zIndex = '10000';
+          shadowHost.style.overflow = 'visible';
+
+          // Create an internal overlay inside the shadow DOM (replacing the global one)
+          this.internalOverlay = document.createElement('div');
+          this.internalOverlay.style.position = 'absolute';
+          this.internalOverlay.style.top = '0';
+          this.internalOverlay.style.left = '0';
+          this.internalOverlay.style.width = '100%';
+          this.internalOverlay.style.height = '100%';
+          this.internalOverlay.style.pointerEvents = 'none'; // Let events pass through by default
+          
+          // Create the panel container (will be positioned in the overlay)
+          const panelContainer = document.createElement('div');
+          panelContainer.className =
+            'bg-white rounded-lg shadow-lg overflow-hidden text-gray-800 font-sans';
+          panelContainer.style.pointerEvents = 'auto'; // Make the panel capture events
+          panelContainer.style.position = 'absolute';
+          panelContainer.style.top = '20px';
+          panelContainer.style.right = '20px';
+          panelContainer.style.width = 'auto';
+          panelContainer.style.maxWidth = '800px';
+          panelContainer.style.maxHeight = '90vh';
+          panelContainer.style.overflow = 'hidden'; // Prevent horizontal overflow
+          panelContainer.style.overflowX = 'hidden'; // Prevent horizontal overflow
+
+          // Create panel elements
+          this.createPanelElements(panelContainer);
+
+          // Add the panel container to the overlay
+          this.internalOverlay.appendChild(panelContainer);
+          
+          // Add the overlay to the container
+          container.appendChild(this.internalOverlay);
+
+          // Setup drag functionality on the panel container
+          this.dragService = new DragService(panelContainer, this.headerBar);
+
+          // Add ID for legacy compatibility
+          container.id = 'repo-evaluator-panel';
+
+          // Critical: Add wheel event handler to the panel
+          panelContainer.addEventListener(
+            'wheel',
+            e => {
+              // Always stop propagation to prevent events reaching the page
+              e.stopPropagation();
+
+              // Check if we're in the scrollable content container
+              const isInContent = this.contentContainer.contains(e.target as Node);
+
+              if (isInContent) {
+                // Only allow scrolling within the content container
+                const isScrollingUp = e.deltaY < 0;
+                const isScrollingDown = e.deltaY > 0;
+                const isAtTop = this.contentContainer.scrollTop === 0;
+                const isAtBottom =
+                  Math.abs(
+                    this.contentContainer.scrollHeight -
+                      this.contentContainer.scrollTop -
+                      this.contentContainer.clientHeight
+                  ) < 1;
+
+                // Prevent default only when at boundaries
+                if ((isScrollingUp && isAtTop) || (isScrollingDown && isAtBottom)) {
+                  e.preventDefault();
+                }
+              } else {
+                // Not in content container, prevent default scrolling behavior
+                e.preventDefault();
+              }
+            },
+            { passive: false }
+          );
+
+          return {
+            panelContainer,
+            contentContainer: this.contentContainer,
+          };
+        },
+      });
+
+      debugLog('ui', 'AnalysisPanel UI initialized successfully');
+    } catch (error) {
+      errorLog('ui', 'Error initializing AnalysisPanel:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Create panel elements inside the shadow DOM
+   */
+  private createPanelElements(uiContainer: HTMLElement): void {
     // Create header/title bar for dragging
     this.headerBar = document.createElement('div');
-    this.headerBar.className = 'repo-evaluator-header';
-    this.headerBar.style.cssText = `
-      padding: 12px 15px;
-      background-color: #f6f8fa;
-      border-bottom: 1px solid #e1e4e8;
-      border-radius: 8px 8px 0 0;
-      cursor: move;
-      user-select: none;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    `;
-    
+    this.headerBar.className =
+      'bg-gray-100 border-b border-gray-200 rounded-t-lg p-3 flex items-center justify-between cursor-move select-none';
+
     // Create title for the header
     const headerTitle = document.createElement('div');
-    headerTitle.style.cssText = `
-      font-weight: 600;
-      font-size: 14px;
-      color: #24292e;
-      display: flex;
-      align-items: center;
-    `;
-    
+    headerTitle.className = 'font-semibold text-sm flex items-center text-gray-800';
+
     // Add icon to title
     headerTitle.innerHTML = `
       ${IconHelper.getSvgIconString('repo')}
-      <span style="margin-left: 8px;">RateThisRepo Analysis</span>
+      <span class="ml-2">RateThisRepo Analysis</span>
     `;
     this.headerBar.appendChild(headerTitle);
-    
-    // Add a close button
-    const closeBtn = document.createElement('div');
+
+    // Add a close button with Tailwind classes
+    const closeBtn = document.createElement('button');
     closeBtn.innerHTML = '✕';
-    closeBtn.style.cssText = `
-      width: 24px;
-      height: 24px;
-      font-size: 18px;
-      line-height: 24px;
-      text-align: center;
-      cursor: pointer;
-      color: #586069;
-      background: rgba(240, 240, 240, 0.8);
-      border-radius: 50%;
-      transition: all 0.2s ease;
-    `;
-    
-    closeBtn.onmouseover = () => {
-      closeBtn.style.backgroundColor = '#e0e0e0';
-      closeBtn.style.color = '#24292e';
-    };
-    
-    closeBtn.onmouseout = () => {
-      closeBtn.style.backgroundColor = 'rgba(240, 240, 240, 0.8)';
-      closeBtn.style.color = '#586069';
-    };
-    
+    closeBtn.className =
+      'w-6 h-6 text-lg leading-6 text-center cursor-pointer text-gray-600 bg-gray-100/80 rounded-full transition-all hover:bg-gray-200 hover:text-gray-800';
+    closeBtn.setAttribute('aria-label', 'Close panel');
+
     // Set close button behavior
     closeBtn.onclick = () => {
-      this.hide();
-      // Update toggle button state
-      const toggleButton = document.getElementById('repo-evaluator-toggle');
-      if (toggleButton) {
-        toggleButton.classList.remove('active');
-        toggleButton.title = 'Show Repository Analysis';
+      // First update state in StateManager
+      const stateManager = StateManager.getInstance();
+      stateManager.setPanelVisibility(false).catch(error => {
+        errorLog('ui', 'Error closing panel via X button:', error);
+      });
+
+      // Call the close callback if provided
+      if (this.closeCallback) {
+        this.closeCallback();
       }
     };
-    
+
     this.headerBar.appendChild(closeBtn);
-    
+
     // Add header to panel
-    this.panel.appendChild(this.headerBar);
-    
-    // Create content container with separate scrolling
+    uiContainer.appendChild(this.headerBar);
+
+    // Create content container with separate scrolling using Tailwind classes
     this.contentContainer = document.createElement('div');
-    this.contentContainer.style.cssText = `
-      width: 100%;
-      height: calc(100% - 48px); /* Subtract header height */
-      max-height: calc(90vh - 48px);
-      overflow-y: auto;
-      padding: 20px;
-      box-sizing: border-box;
-    `;
-    
-    this.panel.appendChild(this.contentContainer);
-    
-    // Initialize sub-components with debug mode
+    this.contentContainer.className = 'w-full bg-white p-5 overflow-y-auto box-border';
+    this.contentContainer.style.overflowX = 'hidden'; // Prevent horizontal scrolling
+    this.contentContainer.style.pointerEvents = 'auto'; // Ensure it can capture events
+
+    // Apply max-height using inline style since Tailwind doesn't have exact values
+    this.contentContainer.style.height = 'calc(100% - 48px)';
+    this.contentContainer.style.maxHeight = 'calc(90vh - 48px)';
+
+    uiContainer.appendChild(this.contentContainer);
+
+    // Initialize sub-components
     this.scoreDisplay = new ScoreDisplay();
     this.healthIndicators = new HealthIndicators();
     this.detailedMetricsPanel = new DetailedMetricsPanel(DEBUG_MODE);
   }
-  
+
   /**
    * Populate the panel with analysis data
    * @param resultData Analysis results to display
    */
   public setData(resultData: AnalysisResult): void {
+    if (!this.contentContainer) {
+      errorLog('ui', 'Cannot set data: Panel not initialized');
+      return;
+    }
+
+    if (!resultData) {
+      errorLog('ui', 'Cannot set data: Invalid data provided');
+      return;
+    }
+
     // Clear previous content
     this.contentContainer.innerHTML = '';
-    
+
     // Create a header with repository title
     const header = document.createElement('div');
-    header.innerHTML = `
-      <h2>
+    const headerHtml = `
+      <h2 class="flex items-center text-xl font-semibold mt-6 mb-4 pb-2 border-b border-gray-200 text-gray-800">
         ${IconHelper.getSvgIconString('repo')}
-        Repository Analysis: ${resultData.repoName}
+        <span class="ml-2">Repository Analysis: ${resultData.repoName}</span>
       </h2>
     `;
+    header.innerHTML = headerHtml;
     this.contentContainer.appendChild(header);
-    
+
     // Description
     const description = document.createElement('div');
-    description.className = 'info';
-    description.style.fontStyle = 'italic';
+    description.className = 'italic text-gray-600 mb-4';
     description.textContent = resultData.description || 'No description provided';
     this.contentContainer.appendChild(description);
-    
+
     // Add score display
     this.scoreDisplay.setScore(parseFloat(resultData.score));
-    this.scoreDisplay.appendTo(this.contentContainer);
-    
+    this.contentContainer.appendChild(this.scoreDisplay.getElement());
+
     // Add health indicators
     this.healthIndicators.setData(resultData);
-    this.healthIndicators.appendTo(this.contentContainer);
-    
+    this.contentContainer.appendChild(this.healthIndicators.getElement());
+
     // Add detailed metrics panel
     this.detailedMetricsPanel.setData(resultData);
-    this.detailedMetricsPanel.appendTo(this.contentContainer);
-    
+    this.contentContainer.appendChild(this.detailedMetricsPanel.getElement());
+
     // Add footer with disclaimer
     const footer = document.createElement('div');
-    footer.className = 'footer';
+    footer.className = 'mt-6 pt-4 border-t border-gray-200 text-xs text-gray-600';
     footer.innerHTML = `
-      <p>⚠️ Note: This is an automated evaluation based on repository metrics.</p>
+      <p class="mb-1">⚠️ Note: This is an automated evaluation based on repository metrics.</p>
       <p>For a complete assessment, also consider code quality, community engagement, and the project's specific goals.</p>
     `;
-    
+
     this.contentContainer.appendChild(footer);
   }
-  
+
   /**
-   * Add the panel to the DOM
+   * Mount the panel to the DOM
+   * Using correct WXT mounting methodology
    */
-  public appendTo(parent: HTMLElement = document.body): void {
-    // Remove any existing panel
-    this.remove();
-    
-    // Add to page
-    parent.appendChild(this.panel);
+  public async mount(): Promise<void> {
+    // Ensure UI is initialized
+    if (!this.ui) {
+      await this.initialize();
+    }
+
+    // Mount the UI using WXT's mount method
+    try {
+      this.ui?.mount();
+      debugLog('ui', 'AnalysisPanel mounted successfully');
+    } catch (error) {
+      errorLog('ui', 'Error mounting AnalysisPanel UI:', error);
+      throw error;
+    }
   }
-  
+
   /**
    * Remove the panel from the DOM
    */
   public remove(): void {
-    const existingPanel = document.getElementById('repo-evaluator-panel');
-    if (existingPanel) {
-      existingPanel.remove();
+    if (this.ui) {
+      this.ui.remove();
+      this.ui = null;
     }
   }
-  
+
   /**
    * Show the panel
    */
   public show(): void {
-    this.panel.style.display = 'block';
+    if (this.ui?.shadowHost) {
+      this.ui.shadowHost.style.display = 'block';
+    }
   }
-  
+
   /**
    * Hide the panel
    */
   public hide(): void {
-    this.panel.style.display = 'none';
+    if (this.ui?.shadowHost) {
+      this.ui.shadowHost.style.display = 'none';
+    }
   }
-  
+
   /**
    * Toggle the panel visibility
    */
   public toggle(): void {
-    if (this.panel.style.display === 'none') {
-      this.show();
-    } else {
-      this.hide();
+    if (this.ui?.shadowHost) {
+      if (this.ui.shadowHost.style.display === 'none') {
+        this.show();
+      } else {
+        this.hide();
+      }
     }
   }
 }

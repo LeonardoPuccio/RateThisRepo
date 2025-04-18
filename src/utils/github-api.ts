@@ -6,7 +6,7 @@ import {
   CommitData,
   ReleaseData,
   LanguageData
-} from '../interfaces/repository.interface';
+} from '@/interfaces/repository.interface';
 
 /**
  * GitHubAPI class for handling GitHub API requests
