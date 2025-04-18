@@ -12,6 +12,8 @@ A browser extension for analyzing GitHub repositories and providing quality metr
 - Explains the scoring methodology
 - Works across multiple browsers (Chrome, Firefox, Edge)
 
+For a detailed list of changes between versions, please see the [CHANGELOG](CHANGELOG.md).
+
 ## Architecture
 
 RateThisRepo is built with WXT (Web Extension Tools), providing a modern, type-safe framework for browser extensions.
@@ -175,6 +177,10 @@ import { BUTTON_CLASSES } from '@/ui/styles/button-animations';
 container.classList.add(BUTTON_CLASSES.COMPONENT);
 button.classList.add(BUTTON_CLASSES.DEFAULT);
 ```
+
+## Contributing
+
+Contributions are welcome! Please see our [contributing guidelines](CONTRIBUTING.md) for details.
 
 ## License
 
