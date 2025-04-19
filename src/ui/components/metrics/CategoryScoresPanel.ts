@@ -20,6 +20,14 @@ export class CategoryScoresPanel {
   }
 
   /**
+   * Get the container element
+   * @returns The container DOM element
+   */
+  public getElement(): HTMLElement {
+    return this.container;
+  }
+
+  /**
    * Set category data
    * @param categories Score categories data
    */
@@ -113,22 +121,14 @@ export class CategoryScoresPanel {
    */
   private getCategoryDefaultDescription(categoryName: string): string {
     const descriptions: Record<string, string> = {
-      Popularity: 'Based on star count and community adoption',
       Activity: 'Based on recency of updates and development pace',
       Community: 'Based on contributor count, forks, and bus factor',
-      Maintenance: 'Based on issue resolution, PR handling, and project structure',
       Documentation:
         'Based on README quality, website/wiki presence, and overall project documentation',
+      Maintenance: 'Based on issue resolution, PR handling, and project structure',
+      Popularity: 'Based on star count and community adoption',
     };
 
     return descriptions[categoryName] || 'Score based on repository metrics';
-  }
-
-  /**
-   * Get the container element
-   * @returns The container DOM element
-   */
-  public getElement(): HTMLElement {
-    return this.container;
   }
 }

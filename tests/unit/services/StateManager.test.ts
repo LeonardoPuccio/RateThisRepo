@@ -1,27 +1,27 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { fakeBrowser } from 'wxt/testing';
+import { AnalysisResult } from '@/interfaces/analysis.interface';
 import { StateManager } from '@/services/StateManager';
 import { StorageService } from '@/services/StorageService';
-import { AnalysisResult } from '@/interfaces/analysis.interface';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { fakeBrowser } from 'wxt/testing';
 
 // Mock the StorageService
 vi.mock('@/services/StorageService', () => ({
   StorageService: {
-    getState: vi.fn(),
-    updateUiState: vi.fn(),
-    saveAnalysisResult: vi.fn(),
     clearAnalysisData: vi.fn(),
     getOptions: vi.fn(),
-    watchState: vi.fn(),
+    getState: vi.fn(),
+    saveAnalysisResult: vi.fn(),
+    updateUiState: vi.fn(),
     watchOptions: vi.fn(),
+    watchState: vi.fn(),
   },
 }));
 
 // Mock the config module to avoid console output
 vi.mock('@/utils/config', () => ({
+  DEBUG_MODE: false,
   debugLog: vi.fn(),
   errorLog: vi.fn(),
-  DEBUG_MODE: false,
 }));
 
 describe('StateManager', () => {
@@ -30,8 +30,8 @@ describe('StateManager', () => {
   // Helper to mock initial state
   const mockInitialState = (overrides = {}) => {
     return {
-      isPanelVisible: false,
       hasAnalysisData: false,
+      isPanelVisible: false,
       repoAnalysis: null,
       ...overrides,
     };

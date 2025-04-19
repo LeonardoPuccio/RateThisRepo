@@ -1,57 +1,57 @@
-export interface ScoreCategory {
-  name: string;
+export interface AnalysisResult {
+  activityMessage: string;
+  categories: ScoreCategory[];
+  description: null | string;
+  hasCommunity: boolean;
+  hasReadme: boolean;
+  hasWebsite: boolean;
+  hasWiki: boolean;
+  isActive: boolean;
+  isPopular: boolean;
+  isWellDocumented: boolean;
+  isWellMaintained: boolean;
+  metrics: RepositoryMetrics;
+  readmeLength: number;
+  recommendations: string[];
+  repoName: string;
   score: string;
-  description: string;
+  strengths: string[];
 }
 
 export interface RepositoryMetrics {
-  stars: number;
-  forks: number;
-  openIssues: number;
-  closedIssues: number;
-  contributors: number;
-  daysSinceLastUpdate: number;
-  busFactor: number;
-  languages: Record<string, string>;
-  creationDate: string;
-  lastUpdate: string;
-  repoAge: string;
-  watchers: number;
-  openPRs: number;
-  closedPRs: number;
-  releaseCount: number;
-  license: string;
-  issueResolutionRate: string;
-  prMergeRate: string;
-  recentCommits: number;
   avgIssuesPerMonth: string;
   avgReleaseFrequency: string;
+  busFactor: number;
+  closedIssues: number;
+  closedPRs: number;
+  contributors: number;
+  creationDate: string;
+  daysSinceLastUpdate: number;
+  forks: number;
+  issueResolutionRate: string;
+  languages: Record<string, string>;
+  lastUpdate: string;
+  license: string;
+  openIssues: number;
+  openPRs: number;
+  prMergeRate: string;
+  recentCommits: number;
+  releaseCount: number;
+  repoAge: string;
+  stars: number;
+  watchers: number;
+}
+
+export interface ScoreCategory {
+  description: string;
+  name: string;
+  score: string;
 }
 
 export interface ScoreDetails {
-  popularity: number;
   activity: number;
   community: number;
-  maintenance: number;
   documentation: number;
-}
-
-export interface AnalysisResult {
-  repoName: string;
-  description: string | null;
-  score: string;
-  categories: ScoreCategory[];
-  metrics: RepositoryMetrics;
-  isPopular: boolean;
-  isActive: boolean;
-  hasCommunity: boolean;
-  isWellMaintained: boolean;
-  isWellDocumented: boolean;
-  hasReadme: boolean;
-  hasWiki: boolean;
-  hasWebsite: boolean;
-  readmeLength: number;
-  activityMessage: string;
-  strengths: string[];
-  recommendations: string[];
+  maintenance: number;
+  popularity: number;
 }

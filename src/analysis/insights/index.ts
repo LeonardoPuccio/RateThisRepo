@@ -1,2 +1,2 @@
-export { StrengthsAnalyzer } from './StrengthsAnalyzer';
 export { RecommendationsAnalyzer } from './RecommendationsAnalyzer';
+export { StrengthsAnalyzer } from './StrengthsAnalyzer';

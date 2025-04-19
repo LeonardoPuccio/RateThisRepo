@@ -1,4 +1,5 @@
 import { AnalysisResult } from '@/interfaces/analysis.interface';
+
 import { CollapsibleCard } from '../CollapsibleCard';
 
 /**
@@ -17,6 +18,14 @@ export class RepositoryMetricsCard {
 
     // Create the collapsible card
     this.card = new CollapsibleCard('Repository Metrics', tableElement, 'repo');
+  }
+
+  /**
+   * Get the card element
+   * @returns The card DOM element
+   */
+  public getElement(): HTMLElement {
+    return this.card.getElement();
   }
 
   /**
@@ -106,13 +115,5 @@ export class RepositoryMetricsCard {
 
     tableContainer.appendChild(table);
     return tableContainer;
-  }
-
-  /**
-   * Get the card element
-   * @returns The card DOM element
-   */
-  public getElement(): HTMLElement {
-    return this.card.getElement();
   }
 }

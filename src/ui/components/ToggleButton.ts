@@ -1,22 +1,22 @@
+import { ToggleButtonMountData } from '@/ui/interfaces/ui-interfaces';
+import { BUTTON_CLASSES } from '@/ui/styles/button-animations';
+import { debugLog, errorLog } from '@/utils/config';
+import { ContentScriptContext } from 'wxt/utils/content-script-context';
 import {
   createShadowRootUi,
   ShadowRootContentScriptUi,
 } from 'wxt/utils/content-script-ui/shadow-root';
-import { ContentScriptContext } from 'wxt/utils/content-script-context';
-import { debugLog, errorLog } from '@/utils/config';
-import { ToggleButtonMountData } from '@/ui/interfaces/ui-interfaces';
-import { BUTTON_CLASSES } from '@/ui/styles/button-animations';
 
 /**
  * ToggleButton component responsible for the floating action button
  * that toggles the analysis panel
  */
 export class ToggleButton {
-  private ui: ShadowRootContentScriptUi<ToggleButtonMountData> | null = null;
   private button!: HTMLButtonElement;
-  private tooltip!: HTMLDivElement;
-  private toggleCallback: () => void;
   private ctx: ContentScriptContext;
+  private toggleCallback: () => void;
+  private tooltip!: HTMLDivElement;
+  private ui: null | ShadowRootContentScriptUi<ToggleButtonMountData> = null;
 
   /**
    * Create a new toggle button
@@ -37,10 +37,9 @@ export class ToggleButton {
     try {
       // Create the shadow root UI using WXT's API
       this.ui = await createShadowRootUi(this.ctx, {
-        name: 'repo-evaluator-button',
-        position: 'inline',
         anchor: 'body',
         mode: 'open',
+        name: 'repo-evaluator-button',
         onMount: (container, shadow, shadowHost) => {
           debugLog('ui', 'Mounting ToggleButton UI in shadow DOM');
 
@@ -110,12 +109,13 @@ export class ToggleButton {
 
           // Return DOM references for later cleanup
           return {
-            container,
             button: this.button,
-            tooltip: this.tooltip,
             buttonContainer,
+            container,
+            tooltip: this.tooltip,
           };
         },
+        position: 'inline',
       });
 
       debugLog('ui', 'ToggleButton UI initialization complete');
@@ -171,11 +171,11 @@ export class ToggleButton {
   }
 
   /**
-   * Show the tooltip
+   * Handle button click
    */
-  private showTooltip(): void {
-    if (this.tooltip) {
-      this.tooltip.classList.add(BUTTON_CLASSES.TOOLTIP_VISIBLE);
+  private handleClick(): void {
+    if (this.toggleCallback) {
+      this.toggleCallback();
     }
   }
 
@@ -189,11 +189,11 @@ export class ToggleButton {
   }
 
   /**
-   * Handle button click
+   * Show the tooltip
    */
-  private handleClick(): void {
-    if (this.toggleCallback) {
-      this.toggleCallback();
+  private showTooltip(): void {
+    if (this.tooltip) {
+      this.tooltip.classList.add(BUTTON_CLASSES.TOOLTIP_VISIBLE);
     }
   }
 }

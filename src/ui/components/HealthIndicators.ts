@@ -5,26 +5,26 @@ import { IconHelper } from '@/ui/helpers/IconHelper';
  * Component for displaying health indicators
  */
 export class HealthIndicators {
-  private container: HTMLElement;
-  private indicatorsContainer: HTMLElement;
-
   // Tooltip content for different metrics
   private static readonly TOOLTIPS = {
+    activity:
+      'Measure of recent updates and development pace based on commits and last update time.',
     busFactor:
       "The 'bus factor' measures project risk if key contributors leave. A higher number is better, meaning knowledge is well distributed among team members. A lower number indicates high dependency on few contributors.",
+    documentation: 'Quality and completeness of documentation including README, Wiki, and website.',
+    forks:
+      'Copies of the repository made by other users. Suggests reuse and adaptation of the code.',
     issueResolution:
       'The percentage of all issues that have been resolved. A higher rate indicates better project maintenance.',
+    maintenance: 'Assessment of issue handling, PR management, and project health.',
     prMerge:
       'The percentage of pull requests that were accepted and merged. Shows how open the project is to contributions.',
     stars:
       "GitHub's way for users to bookmark or show appreciation for a repository. Indicates popularity.",
-    forks:
-      'Copies of the repository made by other users. Suggests reuse and adaptation of the code.',
-    activity:
-      'Measure of recent updates and development pace based on commits and last update time.',
-    maintenance: 'Assessment of issue handling, PR management, and project health.',
-    documentation: 'Quality and completeness of documentation including README, Wiki, and website.',
   };
+  private container: HTMLElement;
+
+  private indicatorsContainer: HTMLElement;
 
   /**
    * Create a new health indicators component
@@ -33,7 +33,7 @@ export class HealthIndicators {
     // Create main container
     this.container = document.createElement('div');
     this.container.className = 'mt-8';
-    
+
     // Create section header with Tailwind classes
     const header = document.createElement('h3');
     header.className = 'flex items-center text-lg font-semibold mb-4 text-gray-900';
@@ -57,6 +57,14 @@ export class HealthIndicators {
   }
 
   /**
+   * Get the component's root element
+   * @returns The component's DOM element
+   */
+  public getElement(): HTMLElement {
+    return this.container;
+  }
+
+  /**
    * Set the data to display
    * @param data Analysis result data
    */
@@ -68,33 +76,33 @@ export class HealthIndicators {
     const indicators = [
       {
         name: 'Popularity',
-        value: this.getPopularityMessage(data),
         status: data.isPopular,
         tooltip: HealthIndicators.TOOLTIPS.stars + ' ' + HealthIndicators.TOOLTIPS.forks,
+        value: this.getPopularityMessage(data),
       },
       {
         name: 'Activity',
-        value: data.activityMessage || this.getActivityMessage(data),
         status: data.isActive,
         tooltip: HealthIndicators.TOOLTIPS.activity,
+        value: data.activityMessage || this.getActivityMessage(data),
       },
       {
         name: 'Community',
-        value: this.getCommunityMessage(data),
         status: data.hasCommunity,
         tooltip: HealthIndicators.TOOLTIPS.busFactor,
+        value: this.getCommunityMessage(data),
       },
       {
         name: 'Maintenance',
-        value: this.getMaintenanceMessage(data),
         status: data.isWellMaintained,
         tooltip: HealthIndicators.TOOLTIPS.issueResolution,
+        value: this.getMaintenanceMessage(data),
       },
       {
         name: 'Documentation',
-        value: this.getDocumentationMessage(data),
         status: data.hasReadme && (data.hasWiki || data.hasWebsite) ? true : data.isWellDocumented,
         tooltip: HealthIndicators.TOOLTIPS.documentation,
+        value: this.getDocumentationMessage(data),
       },
     ];
 
@@ -105,9 +113,7 @@ export class HealthIndicators {
 
       // Set base classes
       indicatorElement.className = `flex items-center p-3 rounded-md mb-3 ${
-        indicator.status 
-          ? 'bg-[#34d39933] border-green-400' 
-          : 'bg-[#ef44441a] border-red-500'
+        indicator.status ? 'bg-[#34d39933] border-green-400' : 'bg-[#ef44441a] border-red-500'
       } border-l-4 border-solid text-gray-900`;
 
       // Add icon
@@ -151,12 +157,14 @@ export class HealthIndicators {
 
         // Create tooltip with Tailwind classes
         const tooltipText = document.createElement('div');
-        tooltipText.className = 'invisible opacity-0 group-hover:visible group-hover:opacity-100 transition-opacity duration-200 absolute bottom-full left-0 w-64 p-2 mb-1 rounded z-10 bg-gray-800 text-white text-sm';
+        tooltipText.className =
+          'invisible opacity-0 group-hover:visible group-hover:opacity-100 transition-opacity duration-200 absolute bottom-full left-0 w-64 p-2 mb-1 rounded z-10 bg-gray-800 text-white text-sm';
         tooltipText.innerHTML = indicator.tooltip;
 
         // Add a tooltip arrow
         const tooltipArrow = document.createElement('div');
-        tooltipArrow.className = 'absolute top-full left-4 border-4 border-solid border-transparent border-t-gray-800';
+        tooltipArrow.className =
+          'absolute top-full left-4 border-4 border-solid border-transparent border-t-gray-800';
         tooltipText.appendChild(tooltipArrow);
 
         tooltipContainer.appendChild(tooltipText);
@@ -178,17 +186,6 @@ export class HealthIndicators {
 
       this.indicatorsContainer.appendChild(indicatorElement);
     });
-  }
-
-  /**
-   * Generate popularity message with fallbacks
-   * @param data Analysis result data
-   * @returns Formatted popularity message
-   */
-  private getPopularityMessage(data: AnalysisResult): string {
-    const stars = data.metrics.stars || 0;
-    const forks = data.metrics.forks || 0;
-    return `${stars} ${stars === 1 ? 'star' : 'stars'}, ${forks} ${forks === 1 ? 'fork' : 'forks'}`;
   }
 
   /**
@@ -224,25 +221,6 @@ export class HealthIndicators {
   }
 
   /**
-   * Generate maintenance message with fallbacks
-   * @param data Analysis result data
-   * @returns Formatted maintenance message
-   */
-  private getMaintenanceMessage(data: AnalysisResult): string {
-    // Default to a readable message if issueResolutionRate is missing
-    const issueRate = data.metrics.issueResolutionRate || 'N/A';
-
-    // Add more context if we have open/closed issues
-    if (data.metrics.openIssues !== undefined && data.metrics.closedIssues !== undefined) {
-      const openIssues = data.metrics.openIssues || 0;
-      const closedIssues = data.metrics.closedIssues || 0;
-      return `${issueRate} issue resolution rate (${closedIssues}/${closedIssues + openIssues})`;
-    }
-
-    return `${issueRate} issue resolution rate`;
-  }
-
-  /**
    * Generate documentation message with fallbacks
    * @param data Analysis result data
    * @returns Formatted documentation message
@@ -262,10 +240,32 @@ export class HealthIndicators {
   }
 
   /**
-   * Get the component's root element
-   * @returns The component's DOM element
+   * Generate maintenance message with fallbacks
+   * @param data Analysis result data
+   * @returns Formatted maintenance message
    */
-  public getElement(): HTMLElement {
-    return this.container;
+  private getMaintenanceMessage(data: AnalysisResult): string {
+    // Default to a readable message if issueResolutionRate is missing
+    const issueRate = data.metrics.issueResolutionRate || 'N/A';
+
+    // Add more context if we have open/closed issues
+    if (data.metrics.openIssues !== undefined && data.metrics.closedIssues !== undefined) {
+      const openIssues = data.metrics.openIssues || 0;
+      const closedIssues = data.metrics.closedIssues || 0;
+      return `${issueRate} issue resolution rate (${closedIssues}/${closedIssues + openIssues})`;
+    }
+
+    return `${issueRate} issue resolution rate`;
+  }
+
+  /**
+   * Generate popularity message with fallbacks
+   * @param data Analysis result data
+   * @returns Formatted popularity message
+   */
+  private getPopularityMessage(data: AnalysisResult): string {
+    const stars = data.metrics.stars || 0;
+    const forks = data.metrics.forks || 0;
+    return `${stars} ${stars === 1 ? 'star' : 'stars'}, ${forks} ${forks === 1 ? 'fork' : 'forks'}`;
   }
 }

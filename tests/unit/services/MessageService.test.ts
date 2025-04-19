@@ -1,13 +1,14 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { fakeBrowser } from 'wxt/testing';
-import { ACTIONS } from '@/utils/constants';
 import type { ExtensionMessage, MessageResponse } from '@/interfaces/messaging.interface';
+
+import { ACTIONS } from '@/utils/constants';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { fakeBrowser } from 'wxt/testing';
 
 // Mock config to avoid console output in tests
 vi.mock('@/utils/config', () => ({
+  DEBUG_MODE: false,
   debugLog: vi.fn(),
   errorLog: vi.fn(),
-  DEBUG_MODE: false,
 }));
 
 // Import after mocking

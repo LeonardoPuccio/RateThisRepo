@@ -1,4 +1,5 @@
 import { AnalysisResult } from '@/interfaces/analysis.interface';
+
 import { CollapsibleCard } from '../CollapsibleCard';
 
 /**
@@ -22,6 +23,14 @@ export class AdvancedMetricsCard {
       'code',
       true // collapsed by default
     );
+  }
+
+  /**
+   * Get the card element
+   * @returns The card DOM element
+   */
+  public getElement(): HTMLElement {
+    return this.card.getElement();
   }
 
   /**
@@ -96,13 +105,5 @@ export class AdvancedMetricsCard {
     if (length > 500) return 'Adequate';
     if (length > 300) return 'Basic';
     return 'Minimal';
-  }
-
-  /**
-   * Get the card element
-   * @returns The card DOM element
-   */
-  public getElement(): HTMLElement {
-    return this.card.getElement();
   }
 }
