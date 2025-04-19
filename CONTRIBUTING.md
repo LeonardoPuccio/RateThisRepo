@@ -20,19 +20,44 @@ We follow a simplified Git Flow branching strategy:
 
 ### Pull Request Process
 
-1. Create a new branch from `develop` with a descriptive name (e.g., `feature/add-dark-theme` or `bugfix/fix-analysis-panel-style`).
+1. Create a new branch from `develop` with a descriptive name (e.g., `feature/add-dark-theme` or `bugfix/fix-analysis-panel-style`):
+   ```bash
+   git checkout develop
+   git pull
+   git checkout -b feature/your-feature-name
+   ```
 
 2. Make your changes, following the coding standards and testing guidelines.
 
-3. Submit a pull request to the `develop` branch.
+3. Commit your changes with appropriate messages:
+   ```bash
+   git add .
+   git commit -m "feat: add your feature description"
+   ```
 
-4. Ensure your PR includes:
+4. Push your branch to GitHub:
+   ```bash
+   git push -u origin feature/your-feature-name
+   ```
+
+5. **Create a Pull Request on GitHub**:
+   - Navigate to the repository on GitHub.com
+   - Click on "Pull Requests" tab
+   - Click the green "New pull request" button
+   - Set the "base" branch to `develop`
+   - Set the "compare" branch to your feature branch
+   - Click "Create pull request"
+   - Fill out the PR template with a clear description of your changes
+
+6. Ensure your PR includes:
    - A clear description of the changes
    - Any necessary documentation updates
    - Test coverage for new functionality
    - No lint errors or warnings
 
-5. Once reviewed and approved, your changes will be merged into `develop`.
+7. Request reviews from team members.
+
+8. Once reviewed and approved, your changes will be merged into `develop`.
 
 ## Coding Standards
 
@@ -72,37 +97,112 @@ This provides users with an immediate indicator of repository popularity.
 
 Releases are handled by the project maintainers following this process:
 
-1. Integration of features and fixes into `develop`
-2. Creation of a `release/x.y.z` branch from `develop`
-3. Version number updates and final fixes in the release branch
-4. Merge to `main` and tag with version number (from the main branch)
-5. Merge back to `develop` to incorporate any release fixes
+### Version Numbering (Semantic Versioning)
+
+We follow [Semantic Versioning](https://semver.org/) principles for version numbers:
+
+- **x.y.z** format where:
+  - **x** = Major version (incremented for incompatible API changes)
+  - **y** = Minor version (incremented for backward-compatible new features)
+  - **z** = Patch version (incremented for backward-compatible bug fixes)
+
+For example, version 2.3.1 means:
+- 2 = Major version
+- 3 = Minor version
+- 1 = Patch version
+
+### Process Steps
+
+1. Integration of features and fixes into `develop`.
+
+2. Creation of a `release/x.y.z` branch from `develop`:
+   ```bash
+   git checkout develop
+   git pull
+   git checkout -b release/x.y.z    # Example: release/1.2.0
+   ```
+
+3. Version number updates and final fixes in the release branch:
+   ```bash
+   pnpm run version:minor  # or :patch or :major as appropriate
+   # Make any final tweaks and fixes
+   git add .
+   git commit -m "chore: prepare for x.y.z release"
+   ```
+
+4. Push the release branch to GitHub and create a PR:
+   ```bash
+   git push -u origin release/x.y.z
+   ```
+   - Create a PR on GitHub from `release/x.y.z` to `main`
+   - Request code reviews
+   - Conduct final testing
+
+5. After PR approval, merge to `main`:
+   ```bash
+   git checkout main
+   git pull
+   git merge release/x.y.z
+   ```
+
+6. **Create a version tag** from the main branch:
+   ```bash
+   git tag -a vx.y.z -m "Release version x.y.z"
+   git push origin main --tags
+   ```
+
+7. Create a GitHub Release:
+   - Go to the repository on GitHub
+   - Click on "Releases"
+   - Click "Draft a new release"
+   - Choose the tag you just created
+   - Fill in the release title and description
+   - Add release notes detailing the changes
+   - Click "Publish release"
+
+8. Merge back to `develop` to incorporate any release fixes:
+   ```bash
+   git checkout develop
+   git pull
+   git merge release/x.y.z
+   git push origin develop
+   ```
 
 <details>
-<summary><strong>Detailed Release Commands</strong> (click to expand)</summary>
+<summary><strong>Complete Release Process Example</strong> (click to expand)</summary>
 
 ```bash
-# 1. Create a release branch from develop
+# Starting a new release
 git checkout develop
 git pull
-git checkout -b release/x.y.z
+git checkout -b release/x.y.z    # e.g., release/1.2.0
 
-# 2. Update version numbers
-pnpm run version:minor  # or :patch or :major as appropriate
+# Update version numbers
+pnpm run version:minor  # or :patch or :major depending on the nature of the changes
 # Make any final tweaks and fixes
+git add .
 git commit -m "chore: prepare for x.y.z release"
 
-# 3. Merge to main after testing
-git checkout main
-git merge release/x.y.z
+# Push release branch and create PR on GitHub
+git push -u origin release/x.y.z
+# Go to GitHub and create PR from release/x.y.z to main
+# After PR is approved and merged...
 
-# 4. Create a version tag from the main branch
-git tag -a vx.y.z -m "Release version x.y.z"
+# Merge to main after PR approval
+git checkout main
+git pull
+# The PR merge has already incorporated changes, but this ensures we're up to date
+
+# Create a version tag from the main branch
+git tag -a vx.y.z -m "Release version x.y.z"    # e.g., v1.2.0
 git push origin main --tags
 
-# 5. Merge back to develop
+# Go to GitHub, create a Release from this tag
+
+# Merge back to develop
 git checkout develop
-git merge release/x.y.z
+git pull
+git merge main # or merge the release branch directly
 git push origin develop
 ```
 </details>
