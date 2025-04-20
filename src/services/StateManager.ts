@@ -6,20 +6,10 @@
  */
 
 import { AnalysisResult } from '@/interfaces/analysis.interface';
+import { StateEventHandler, StateEventMap, StateEventType } from '@/interfaces/events.interface';
 import { debugLog, errorLog } from '@/utils/debug';
 
 import { AppState, StorageService } from './StorageService';
-
-// Event handler type
-export type StateEventHandler = (data?: any) => void;
-
-// Define the available event types
-export type StateEventType =
-  | 'analysis:completed'
-  | 'analysis:error'
-  | 'analysis:started'
-  | 'options:changed'
-  | 'panel:visibility-changed';
 
 /**
  * StateManager provides a centralized state store and event system
@@ -28,7 +18,7 @@ export type StateEventType =
  */
 export class StateManager {
   private static instance: StateManager;
-  private eventListeners: Map<StateEventType, Set<StateEventHandler>>;
+  private eventListeners: Map<StateEventType, Set<StateEventHandler<unknown>>>;
   private state: AppState;
   private unwatchOptionsCallback: (() => void) | null = null;
   private unwatchStateCallback: (() => void) | null = null;
@@ -94,17 +84,20 @@ export class StateManager {
   }
 
   /**
-   * Emit an event
+   * Emit an event with appropriate data
    */
-  public emit(event: StateEventType, data?: any): void {
+  public emit<T extends StateEventType>(event: T, data?: StateEventMap[T]): void {
     debugLog('state', `Event emitted: ${event}`, data);
 
     if (this.eventListeners.has(event)) {
-      for (const handler of this.eventListeners.get(event)!) {
-        try {
-          handler(data);
-        } catch (error) {
-          errorLog('state', `Error in ${event} event handler:`, error);
+      const handlers = this.eventListeners.get(event);
+      if (handlers) {
+        for (const handler of handlers) {
+          try {
+            handler(data);
+          } catch (error) {
+            errorLog('state', `Error in ${event} event handler:`, error);
+          }
         }
       }
     }
@@ -148,23 +141,35 @@ export class StateManager {
   /**
    * Remove an event listener
    */
-  public off(event: StateEventType, handler: StateEventHandler): void {
+  public off<T extends StateEventType>(
+    event: T,
+    handler: StateEventHandler<StateEventMap[T]>
+  ): void {
     if (this.eventListeners.has(event)) {
-      this.eventListeners.get(event)!.delete(handler);
-      debugLog('state', `Event listener removed for: ${event}`);
+      const handlers = this.eventListeners.get(event);
+      if (handlers) {
+        handlers.delete(handler as StateEventHandler<unknown>);
+        debugLog('state', `Event listener removed for: ${event}`);
+      }
     }
   }
 
   /**
    * Add an event listener
    */
-  public on(event: StateEventType, handler: StateEventHandler): void {
+  public on<T extends StateEventType>(
+    event: T,
+    handler: StateEventHandler<StateEventMap[T]>
+  ): void {
     if (!this.eventListeners.has(event)) {
       this.eventListeners.set(event, new Set());
     }
 
-    this.eventListeners.get(event)!.add(handler);
-    debugLog('state', `Event listener added for: ${event}`);
+    const handlers = this.eventListeners.get(event);
+    if (handlers) {
+      handlers.add(handler as StateEventHandler<unknown>);
+      debugLog('state', `Event listener added for: ${event}`);
+    }
   }
 
   /**
@@ -221,13 +226,13 @@ export class StateManager {
       }
 
       if (!oldState.hasAnalysisData && newState.hasAnalysisData) {
-        this.emit('analysis:completed', newState.repoAnalysis);
+        this.emit('analysis:completed', newState.repoAnalysis as AnalysisResult);
       }
     });
 
     // Watch for options changes
     this.unwatchOptionsCallback = StorageService.watchOptions(newOptions => {
-      this.emit('options:changed', newOptions);
+      this.emit('options:changed', newOptions as Record<string, unknown>);
     });
   }
 }

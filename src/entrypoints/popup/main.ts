@@ -54,6 +54,7 @@ document.addEventListener('DOMContentLoaded', function () {
       const pathParts = urlObj.pathname.split('/').filter(p => p);
       return pathParts.length >= 2;
     } catch (e) {
+      errorLog('popup', 'Error parsing URL:', e);
       return false;
     }
   }
@@ -112,16 +113,20 @@ document.addEventListener('DOMContentLoaded', function () {
         analyzeBtn.disabled = true;
 
         // Send message to content script
-        browser.tabs.sendMessage(tabs[0].id, { action: ACTIONS.ANALYZE_REPO }, function (response) {
-          // After a delay, reload state to show results
-          setTimeout(function () {
-            loadStateFromStorage();
+        browser.tabs.sendMessage(
+          tabs[0].id,
+          { action: ACTIONS.ANALYZE_REPO },
+          function (_response) {
+            // After a delay, reload state to show results
+            setTimeout(function () {
+              loadStateFromStorage();
 
-            // Reset button
-            analyzeBtn.textContent = 'Analyze Repository';
-            analyzeBtn.disabled = false;
-          }, 2000);
-        });
+              // Reset button
+              analyzeBtn.textContent = 'Analyze Repository';
+              analyzeBtn.disabled = false;
+            }, 2000);
+          }
+        );
       }
     });
   }

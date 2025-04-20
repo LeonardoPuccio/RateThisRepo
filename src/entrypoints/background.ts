@@ -1,4 +1,4 @@
-import { AnalysisResult } from '@/interfaces/analysis.interface';
+import { AnalysisCompleteMessage } from '@/interfaces/messaging.interface';
 import { StateManager } from '@/services/StateManager';
 import { StorageService } from '@/services/StorageService';
 import { ACTIONS, STORAGE_KEYS } from '@/utils/constants';
@@ -25,10 +25,18 @@ export default defineBackground(() => {
   });
 
   // Listen for messages from popup or content scripts
-  browser.runtime.onMessage.addListener((message: any, sender, sendResponse) => {
-    debugLog('messaging', 'Received message:', message.action);
+  browser.runtime.onMessage.addListener((message: unknown, sender, sendResponse) => {
+    // Basic validation
+    if (!message || typeof message !== 'object' || !('action' in message)) {
+      return false;
+    }
 
-    if (message.action === ACTIONS.ANALYZE_REPO) {
+    // Extract the action for easier access and logging
+    const { action } = message as { action: string };
+    debugLog('messaging', 'Received message:', action);
+
+    // Analyze repo message
+    if (action === ACTIONS.ANALYZE_REPO) {
       browser.tabs
         .query({ active: true, currentWindow: true })
         .then(tabs => {
@@ -45,17 +53,18 @@ export default defineBackground(() => {
       return true;
     }
 
-    if (message.action === ACTIONS.ANALYSIS_COMPLETE) {
-      // Save the analysis result using our state manager
-      stateManager.saveAnalysisResult(message.data as AnalysisResult).catch(err => {
+    // Analysis complete message
+    if (action === ACTIONS.ANALYSIS_COMPLETE) {
+      const analysisMessage = message as AnalysisCompleteMessage;
+      stateManager.saveAnalysisResult(analysisMessage.data).catch(err => {
         errorLog('storage', 'Error saving analysis result:', err);
       });
 
       return true;
     }
 
-    // Messaging to request current state
-    if (message.action === ACTIONS.GET_STATE) {
+    // Get state message
+    if (action === ACTIONS.GET_STATE) {
       try {
         const state = stateManager.getState();
         sendResponse(state);

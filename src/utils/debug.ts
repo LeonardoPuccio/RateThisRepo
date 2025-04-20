@@ -7,7 +7,7 @@ import { DEBUG_CONFIG, DEBUG_MODE } from './config';
 /**
  * Debug logging with component context
  */
-export function debugLog(component: keyof typeof DEBUG_CONFIG, ...args: any[]): void {
+export function debugLog(component: keyof typeof DEBUG_CONFIG, ...args: unknown[]): void {
   if (DEBUG_MODE && DEBUG_CONFIG[component]) {
     // eslint-disable-next-line no-console
     console.log(`[DEBUG:${component}]`, ...args);
@@ -18,7 +18,7 @@ export function debugLog(component: keyof typeof DEBUG_CONFIG, ...args: any[]): 
  * Error logging with component context
  * Always logs regardless of debug mode
  */
-export function errorLog(component: keyof typeof DEBUG_CONFIG, ...args: any[]): void {
+export function errorLog(component: keyof typeof DEBUG_CONFIG, ...args: unknown[]): void {
   // Always log errors, regardless of DEBUG_MODE
   console.error(`[ERROR:${component}]`, ...args);
 }

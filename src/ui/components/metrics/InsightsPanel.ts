@@ -60,13 +60,13 @@ export class InsightsPanel {
     const strengths =
       data.strengths && data.strengths.length > 0
         ? data.strengths
-        : this.generateDefaultStrengths(data);
+        : this.generateDefaultStrengths();
 
     // Generate default recommendations if none are provided or empty
     const recommendations =
       data.recommendations && data.recommendations.length > 0
         ? data.recommendations
-        : this.generateDefaultRecommendations(data);
+        : this.generateDefaultRecommendations();
 
     // Add both columns to the container
     insightsContainer.appendChild(this.createStrengthsColumn(strengths));
@@ -212,10 +212,9 @@ export class InsightsPanel {
 
   /**
    * Generate default recommendations when data is missing
-   * @param data Analysis result data
    * @returns Array of default recommendation messages
    */
-  private generateDefaultRecommendations(data: AnalysisResult): string[] {
+  private generateDefaultRecommendations(): string[] {
     debugLog('ui', 'Generating default recommendations');
 
     // Instead of generating potentially misleading defaults,
@@ -228,10 +227,9 @@ export class InsightsPanel {
 
   /**
    * Generate default strengths when data is missing
-   * @param data Analysis result data
    * @returns Array of default strength messages
    */
-  private generateDefaultStrengths(data: AnalysisResult): string[] {
+  private generateDefaultStrengths(): string[] {
     debugLog('ui', 'Generating default strengths');
 
     // Instead of generating potentially misleading defaults,

@@ -13,6 +13,7 @@ export const DEBUG_CONFIG = {
   lifecycle: DEBUG_MODE, // Service Worker lifecycle debug logs
   messaging: DEBUG_MODE, // Message passing debug logs
   performance: DEBUG_MODE, // Performance measurement logs
+  popup: DEBUG_MODE, // Popup script debug logs
   state: DEBUG_MODE, // State management logs
   storage: DEBUG_MODE, // Storage operation debug logs
   ui: DEBUG_MODE, // UI component debug logs

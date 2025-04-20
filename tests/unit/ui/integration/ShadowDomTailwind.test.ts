@@ -62,7 +62,7 @@ describe('Shadow DOM with Tailwind CSS Integration', () => {
     const ctx = { addEventListener: vi.fn() };
 
     // Create a shadow root UI
-    const shadowUi = await createShadowRootUi(ctx as any, {
+    const shadowUi = await createShadowRootUi(ctx as unknown, {
       anchor: 'body',
       mode: 'open',
       name: 'test-component',
@@ -97,7 +97,7 @@ describe('Shadow DOM with Tailwind CSS Integration', () => {
     // Example content script with correct configuration
     const contentScriptConfig = {
       cssInjectionMode: 'ui',
-      main: async (ctx: any) => {
+      main: async (_ctx: unknown) => {
         // Content script implementation
       },
       matches: ['https://github.com/*/*'],

@@ -80,7 +80,7 @@ function createElementMock() {
     id: '',
     innerHTML: '',
     // Add any other properties the component might access
-    onclick: null as any,
+    onclick: null as unknown, // Changed from 'any' to 'unknown'
     parentNode: {
       removeChild: vi.fn(),
     },
@@ -349,7 +349,7 @@ describe('AnalysisPanel Instance Methods', () => {
   describe('Basic properties and methods', () => {
     it('should have correct initial state', () => {
       // Check that ui is null initially
-      // @ts-ignore - accessing private property for testing
+      // @ts-expect-error - accessing private property for testing
       expect(panel.ui).toBeNull();
     });
   });
@@ -358,7 +358,7 @@ describe('AnalysisPanel Instance Methods', () => {
   describe('UI visibility methods with mocked shadowUI', () => {
     beforeEach(() => {
       // Manually set the ui property to our mock
-      // @ts-ignore - setting private properties for testing
+      // @ts-expect-error - setting private properties for testing
       panel.ui = mockShadowUi;
     });
 
@@ -408,15 +408,15 @@ describe('AnalysisPanel Instance Methods', () => {
       });
 
       // Manually set up the panel with necessary properties to test setData
-      // @ts-ignore - setting private properties for testing
+      // @ts-expect-error - setting private properties for testing
       panel.contentContainer = contentContainer;
 
       // Important: Set up the component instances with our pre-defined mocks
-      // @ts-ignore
+      // @ts-expect-error - accessing private property for testing
       panel.scoreDisplay = mockScoreDisplay;
-      // @ts-ignore
+      // @ts-expect-error - accessing private property for testing
       panel.healthIndicators = mockHealthIndicators;
-      // @ts-ignore
+      // @ts-expect-error - accessing private property for testing
       panel.detailedMetricsPanel = mockDetailedMetricsPanel;
     });
 
@@ -444,7 +444,7 @@ describe('AnalysisPanel Instance Methods', () => {
       mockErrorLog.mockClear();
 
       // Call setData with null
-      // @ts-ignore - deliberately passing null to test error handling
+      // @ts-expect-error - deliberately passing null to test error handling
       panel.setData(null);
 
       // Should log an error
@@ -465,7 +465,7 @@ describe('AnalysisPanel Instance Methods', () => {
       mockErrorLog.mockClear();
 
       // Call setData with undefined
-      // @ts-ignore - deliberately passing undefined to test error handling
+      // @ts-expect-error - deliberately passing undefined to test error handling
       panel.setData(undefined);
 
       // Should log an error
@@ -486,7 +486,7 @@ describe('AnalysisPanel Instance Methods', () => {
       mockErrorLog.mockClear();
 
       // Reset contentContainer to undefined
-      // @ts-ignore - setting private property to undefined for testing
+      // @ts-expect-error - setting private property to undefined for testing
       panel.contentContainer = undefined;
 
       // Call setData with valid data
@@ -505,7 +505,7 @@ describe('AnalysisPanel Instance Methods', () => {
   describe('Panel cleanup', () => {
     beforeEach(() => {
       // Manually set up the panel with necessary properties
-      // @ts-ignore - setting private properties for testing
+      // @ts-expect-error - setting private properties for testing
       panel.ui = mockShadowUi;
     });
 
@@ -516,7 +516,7 @@ describe('AnalysisPanel Instance Methods', () => {
       expect(mockShadowUi.remove).toHaveBeenCalled();
 
       // Check that UI reference was cleared
-      // @ts-ignore
+      // @ts-expect-error - accessing private property for testing
       expect(panel.ui).toBeNull();
     });
   });
@@ -555,9 +555,9 @@ describe('AnalysisPanel Instance Methods', () => {
       });
 
       // Set up the panel with necessary components
-      // @ts-ignore - setting private properties for testing
+      // @ts-expect-error - setting private properties for testing
       panel.headerBar = headerBar;
-      // @ts-ignore
+      // @ts-expect-error - setting private properties for testing
       panel.ui = mockShadowUi;
 
       // Simulate the close button click behavior
@@ -567,15 +567,15 @@ describe('AnalysisPanel Instance Methods', () => {
         if (closeCallback) closeCallback();
       };
 
-      // @ts-ignore - add close button to test
+      // @ts-expect-error - add close button to test
       panel.closeButton = closeButton;
     });
 
     it('should call the close callback when panel is closed', () => {
       // Trigger the close button click (simulated)
-      // @ts-ignore - accessing the internal close button
+      // @ts-expect-error - accessing the internal close button
       if (panel.closeButton && panel.closeButton.onclick) {
-        // @ts-ignore - accessing onclick which might be null
+        // @ts-expect-error - accessing onclick which might be null
         panel.closeButton.onclick();
 
         // Verify StateManager was called to update visibility
@@ -598,7 +598,7 @@ describe('AnalysisPanel Instance Methods', () => {
       // This is more suitable for integration testing
 
       // Instead, we'll just check that the panel has the expected structure
-      // @ts-ignore - accessing private property for testing
+      // @ts-expect-error - accessing private property for testing
       expect(panel.ui).toBeDefined();
     });
   });
