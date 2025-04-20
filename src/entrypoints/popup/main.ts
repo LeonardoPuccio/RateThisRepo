@@ -1,5 +1,4 @@
 import { AnalysisResult } from '@/interfaces/analysis.interface';
-import { DEBUG_MODE } from '@/utils/config';
 import { ACTIONS, STORAGE_KEYS } from '@/utils/constants';
 
 document.addEventListener('DOMContentLoaded', function () {

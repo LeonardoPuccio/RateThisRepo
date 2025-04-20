@@ -1,20 +1,17 @@
 import { AnalysisResult } from '@/interfaces/analysis.interface';
 import { IconHelper } from '@/ui/helpers/IconHelper';
-import { debugLog } from '@/utils/config';
+import { debugLog } from '@/utils/debug';
 
 /**
  * Panel for displaying strengths and improvement recommendations
  */
 export class InsightsPanel {
   private container: HTMLElement;
-  private isDebugMode: boolean;
 
   /**
    * Create a new insights panel
-   * @param debugMode Enable debug logging
    */
-  constructor(debugMode = false) {
-    this.isDebugMode = debugMode;
+  constructor() {
     this.container = document.createElement('div');
     this.container.className = 'mt-8';
   }

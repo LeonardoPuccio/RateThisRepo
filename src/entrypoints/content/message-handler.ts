@@ -1,8 +1,8 @@
 import { ActionMessage, MessageSender, ResponseCallback } from '@/interfaces/messaging.interface';
 import { StateManager } from '@/services/StateManager';
 import { StorageService } from '@/services/StorageService';
-import { debugLog, errorLog } from '@/utils/config';
 import { ACTIONS } from '@/utils/constants';
+import { debugLog, errorLog } from '@/utils/debug';
 
 import { buttonManager } from './button-manager';
 import { errorHandler } from './error-handler';

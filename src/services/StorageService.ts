@@ -7,7 +7,7 @@
 
 import { storage } from '#imports';
 import { AnalysisResult } from '@/interfaces/analysis.interface';
-import { debugLog, errorLog } from '@/utils/config';
+import { debugLog, errorLog } from '@/utils/debug';
 
 /**
  * Define the app state structure

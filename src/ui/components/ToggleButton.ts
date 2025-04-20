@@ -1,6 +1,6 @@
 import { ToggleButtonMountData } from '@/ui/interfaces/ui-interfaces';
 import { BUTTON_CLASSES } from '@/ui/styles/button-animations';
-import { debugLog, errorLog } from '@/utils/config';
+import { debugLog, errorLog, logUIState } from '@/utils/debug';
 import { ContentScriptContext } from 'wxt/utils/content-script-context';
 import {
   createShadowRootUi,
@@ -137,6 +137,8 @@ export class ToggleButton {
     try {
       this.ui?.mount();
       debugLog('ui', 'ToggleButton mounted successfully');
+      // Log UI state after mounting for debugging
+      setTimeout(() => logUIState('button-mounted'), 100);
     } catch (error) {
       errorLog('ui', 'Error mounting ToggleButton UI:', error);
       throw error;
@@ -148,8 +150,11 @@ export class ToggleButton {
    */
   public remove(): void {
     if (this.ui) {
+      debugLog('ui', 'Removing ToggleButton');
       this.ui.remove();
       this.ui = null;
+      // Log UI state after removing for debugging
+      setTimeout(() => logUIState('button-removed'), 100);
     }
   }
 
@@ -159,6 +164,8 @@ export class ToggleButton {
    */
   public setActive(active: boolean): void {
     if (this.button) {
+      debugLog('ui', `Setting ToggleButton active state to: ${active}`);
+
       // Make sure to toggle classes correctly for animation using our constants
       if (active) {
         this.button.classList.remove(BUTTON_CLASSES.DEFAULT);
@@ -167,6 +174,9 @@ export class ToggleButton {
         this.button.classList.remove(BUTTON_CLASSES.ACTIVE);
         this.button.classList.add(BUTTON_CLASSES.DEFAULT);
       }
+
+      // Log UI state after state change for debugging
+      setTimeout(() => logUIState(`button-state-changed-${active ? 'active' : 'inactive'}`), 100);
     }
   }
 
@@ -174,6 +184,7 @@ export class ToggleButton {
    * Handle button click
    */
   private handleClick(): void {
+    debugLog('ui', 'ToggleButton clicked');
     if (this.toggleCallback) {
       this.toggleCallback();
     }

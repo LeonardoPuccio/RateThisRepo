@@ -1,6 +1,6 @@
 import { AnalysisResult } from '@/interfaces/analysis.interface';
 import { IconHelper } from '@/ui/helpers/IconHelper';
-import { debugLog } from '@/utils/config';
+import { debugLog } from '@/utils/debug';
 
 import { AdvancedMetricsCard } from './metrics/cards/AdvancedMetricsCard';
 import { LanguageDistributionCard } from './metrics/cards/LanguageDistributionCard';
@@ -18,22 +18,18 @@ export class DetailedMetricsPanel {
   private container: HTMLElement;
   private detailedMetricsSection: HTMLElement;
   private insightsPanel: InsightsPanel;
-  private isDebugMode: boolean;
 
   /**
    * Create a new detailed metrics panel
-   * @param debugMode Enable debug logging
    */
-  constructor(debugMode = false) {
-    this.isDebugMode = debugMode;
-
+  constructor() {
     // Create main container with Tailwind classes
     this.container = document.createElement('div');
     this.container.className = 'mt-8 space-y-6 text-black';
 
     // Initialize sub-components
-    this.categoryScoresPanel = new CategoryScoresPanel(debugMode);
-    this.insightsPanel = new InsightsPanel(debugMode);
+    this.categoryScoresPanel = new CategoryScoresPanel();
+    this.insightsPanel = new InsightsPanel();
 
     // Create detailed metrics section with Tailwind classes
     this.detailedMetricsSection = document.createElement('div');

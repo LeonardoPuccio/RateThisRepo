@@ -4,7 +4,7 @@ import { IconHelper } from '@/ui/helpers/IconHelper';
 import { AnalysisPanelMountData } from '@/ui/interfaces/ui-interfaces';
 import { DragService } from '@/ui/services/DragService';
 import { BUTTON_CLASSES } from '@/ui/styles/button-animations';
-import { DEBUG_MODE, debugLog, errorLog } from '@/utils/config';
+import { debugLog, errorLog } from '@/utils/debug';
 import { ContentScriptContext } from 'wxt/utils/content-script-context';
 import {
   createShadowRootUi,
@@ -335,6 +335,6 @@ export class AnalysisPanel {
     // Initialize sub-components
     this.scoreDisplay = new ScoreDisplay();
     this.healthIndicators = new HealthIndicators();
-    this.detailedMetricsPanel = new DetailedMetricsPanel(DEBUG_MODE);
+    this.detailedMetricsPanel = new DetailedMetricsPanel();
   }
 }

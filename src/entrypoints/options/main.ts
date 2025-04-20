@@ -1,4 +1,3 @@
-import { DEBUG_MODE } from '@/utils/config';
 import { ACTIONS, STORAGE_KEYS } from '@/utils/constants';
 
 // Elements

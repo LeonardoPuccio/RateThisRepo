@@ -1,7 +1,7 @@
 import { AnalysisResult } from '@/interfaces/analysis.interface';
 import { StateManager } from '@/services/StateManager';
 import { StorageService } from '@/services/StorageService';
-import { debugLog, errorLog } from '@/utils/config';
+import { debugLog, errorLog } from '@/utils/debug';
 import { type ContentScriptContext } from 'wxt/utils/content-script-context';
 
 import { buttonManager } from './button-manager';

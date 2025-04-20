@@ -1,8 +1,8 @@
 import { AnalysisResult } from '@/interfaces/analysis.interface';
 import { StateManager } from '@/services/StateManager';
 import { StorageService } from '@/services/StorageService';
-import { DEBUG_MODE, debugLog, errorLog } from '@/utils/config';
 import { ACTIONS, STORAGE_KEYS } from '@/utils/constants';
+import { debugLog, errorLog } from '@/utils/debug';
 
 export default defineBackground(() => {
   debugLog('lifecycle', 'Background script has loaded');

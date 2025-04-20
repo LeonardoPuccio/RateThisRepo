@@ -4,7 +4,7 @@ import {
   MessageHandler,
   MessageResponse,
 } from '@/interfaces/messaging.interface';
-import { debugLog, errorLog } from '@/utils/config';
+import { debugLog, errorLog } from '@/utils/debug';
 
 /**
  * MessageService provides a centralized way to send and receive messages

@@ -6,7 +6,7 @@
  */
 
 import { AnalysisResult } from '@/interfaces/analysis.interface';
-import { debugLog, errorLog } from '@/utils/config';
+import { debugLog, errorLog } from '@/utils/debug';
 
 import { AppState, StorageService } from './StorageService';
 
