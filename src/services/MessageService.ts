@@ -4,7 +4,7 @@ import {
   MessageHandler,
   MessageResponse,
 } from '@/interfaces/messaging.interface';
-import { debugLog, errorLog } from '@/utils/config';
+import { debugLog, errorLog } from '@/utils/debug';
 
 /**
  * MessageService provides a centralized way to send and receive messages
@@ -41,6 +41,19 @@ export class MessageService implements IMessageService {
   }
 
   /**
+   * Clean up resources
+   */
+  public destroy(): void {
+    if (this.messageListener) {
+      browser.runtime.onMessage.removeListener(this.messageListener);
+      this.messageListener = null;
+    }
+
+    this.handlers.clear();
+    debugLog('messaging', 'MessageService destroyed');
+  }
+
+  /**
    * Register a handler for a specific action
    */
   public registerHandler(action: string, handler: MessageHandler): void {
@@ -50,22 +63,6 @@ export class MessageService implements IMessageService {
 
     this.handlers.get(action)?.add(handler);
     debugLog('messaging', `Handler registered for action: ${action}`);
-  }
-
-  /**
-   * Remove a handler for a specific action
-   */
-  public unregisterHandler(action: string, handler: MessageHandler): void {
-    if (this.handlers.has(action)) {
-      this.handlers.get(action)?.delete(handler);
-
-      // Clean up empty sets
-      if (this.handlers.get(action)?.size === 0) {
-        this.handlers.delete(action);
-      }
-
-      debugLog('messaging', `Handler unregistered for action: ${action}`);
-    }
   }
 
   /**
@@ -94,6 +91,22 @@ export class MessageService implements IMessageService {
     } catch (error) {
       errorLog('messaging', `Error sending tab message (${message.action}):`, error);
       throw error;
+    }
+  }
+
+  /**
+   * Remove a handler for a specific action
+   */
+  public unregisterHandler(action: string, handler: MessageHandler): void {
+    if (this.handlers.has(action)) {
+      this.handlers.get(action)?.delete(handler);
+
+      // Clean up empty sets
+      if (this.handlers.get(action)?.size === 0) {
+        this.handlers.delete(action);
+      }
+
+      debugLog('messaging', `Handler unregistered for action: ${action}`);
     }
   }
 
@@ -139,18 +152,5 @@ export class MessageService implements IMessageService {
     }
 
     return false;
-  }
-
-  /**
-   * Clean up resources
-   */
-  public destroy(): void {
-    if (this.messageListener) {
-      browser.runtime.onMessage.removeListener(this.messageListener);
-      this.messageListener = null;
-    }
-
-    this.handlers.clear();
-    debugLog('messaging', 'MessageService destroyed');
   }
 }

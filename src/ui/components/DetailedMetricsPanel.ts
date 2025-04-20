@@ -1,42 +1,47 @@
 import { AnalysisResult } from '@/interfaces/analysis.interface';
 import { IconHelper } from '@/ui/helpers/IconHelper';
-import { CategoryScoresPanel } from './metrics/CategoryScoresPanel';
-import { InsightsPanel } from './metrics/InsightsPanel';
-import { RepositoryMetricsCard } from './metrics/cards/RepositoryMetricsCard';
+import { debugLog } from '@/utils/debug';
+
 import { AdvancedMetricsCard } from './metrics/cards/AdvancedMetricsCard';
 import { LanguageDistributionCard } from './metrics/cards/LanguageDistributionCard';
 import { MethodologyCard } from './metrics/cards/MethodologyCard';
-import { debugLog } from '@/utils/config';
+import { RepositoryMetricsCard } from './metrics/cards/RepositoryMetricsCard';
+import { CategoryScoresPanel } from './metrics/CategoryScoresPanel';
+import { InsightsPanel } from './metrics/InsightsPanel';
 
 /**
  * Component for displaying detailed metrics and insights
  * Acts as a coordinator for the specialized components
  */
 export class DetailedMetricsPanel {
-  private container: HTMLElement;
   private categoryScoresPanel: CategoryScoresPanel;
-  private insightsPanel: InsightsPanel;
+  private container: HTMLElement;
   private detailedMetricsSection: HTMLElement;
-  private isDebugMode: boolean;
+  private insightsPanel: InsightsPanel;
 
   /**
    * Create a new detailed metrics panel
-   * @param debugMode Enable debug logging
    */
-  constructor(debugMode = false) {
-    this.isDebugMode = debugMode;
-
+  constructor() {
     // Create main container with Tailwind classes
     this.container = document.createElement('div');
     this.container.className = 'mt-8 space-y-6 text-black';
 
     // Initialize sub-components
-    this.categoryScoresPanel = new CategoryScoresPanel(debugMode);
-    this.insightsPanel = new InsightsPanel(debugMode);
+    this.categoryScoresPanel = new CategoryScoresPanel();
+    this.insightsPanel = new InsightsPanel();
 
     // Create detailed metrics section with Tailwind classes
     this.detailedMetricsSection = document.createElement('div');
     this.detailedMetricsSection.className = 'mt-8 space-y-4';
+  }
+
+  /**
+   * Get the component's root element
+   * @returns The component's DOM element
+   */
+  public getElement(): HTMLElement {
+    return this.container;
   }
 
   /**
@@ -103,13 +108,5 @@ export class DetailedMetricsPanel {
     // Add methodology card
     const methodologyCard = new MethodologyCard();
     this.detailedMetricsSection.appendChild(methodologyCard.getElement());
-  }
-
-  /**
-   * Get the component's root element
-   * @returns The component's DOM element
-   */
-  public getElement(): HTMLElement {
-    return this.container;
   }
 }

@@ -4,11 +4,11 @@ import { IconHelper } from '@/ui/helpers/IconHelper';
  * Component for displaying the overall score
  */
 export class ScoreDisplay {
+  private bar: HTMLElement;
+  private barContainer: HTMLElement;
   private container: HTMLElement;
   private scoreElement: HTMLElement;
   private scoreLabel: HTMLElement;
-  private barContainer: HTMLElement;
-  private bar: HTMLElement;
   private scorePercentLabel: HTMLElement;
 
   /**
@@ -56,6 +56,14 @@ export class ScoreDisplay {
   }
 
   /**
+   * Get the component's root element
+   * @returns The component's DOM element
+   */
+  public getElement(): HTMLElement {
+    return this.container;
+  }
+
+  /**
    * Set the score to display
    * @param score Score value (0-100)
    */
@@ -95,13 +103,5 @@ export class ScoreDisplay {
     // Update percentage label - also add color based on status
     this.scorePercentLabel.textContent = `${Math.round(scorePercent)}%`;
     this.scorePercentLabel.className = `mt-1 text-sm font-medium rtr-${status}`;
-  }
-
-  /**
-   * Get the component's root element
-   * @returns The component's DOM element
-   */
-  public getElement(): HTMLElement {
-    return this.container;
   }
 }

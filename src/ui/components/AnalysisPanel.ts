@@ -1,33 +1,34 @@
 import { AnalysisResult } from '@/interfaces/analysis.interface';
-import { DragService } from '@/ui/services/DragService';
-import { DetailedMetricsPanel } from './DetailedMetricsPanel';
-import { HealthIndicators } from './HealthIndicators';
-import { ScoreDisplay } from './ScoreDisplay';
-import { IconHelper } from '@/ui/helpers/IconHelper';
 import { StateManager } from '@/services/StateManager';
+import { IconHelper } from '@/ui/helpers/IconHelper';
+import { AnalysisPanelMountData } from '@/ui/interfaces/ui-interfaces';
+import { DragService } from '@/ui/services/DragService';
+import { BUTTON_CLASSES } from '@/ui/styles/button-animations';
+import { debugLog, errorLog } from '@/utils/debug';
+import { ContentScriptContext } from 'wxt/utils/content-script-context';
 import {
   createShadowRootUi,
   ShadowRootContentScriptUi,
 } from 'wxt/utils/content-script-ui/shadow-root';
-import { ContentScriptContext } from 'wxt/utils/content-script-context';
-import { AnalysisPanelMountData } from '@/ui/interfaces/ui-interfaces';
-import { BUTTON_CLASSES } from '@/ui/styles/button-animations';
-import { DEBUG_MODE, errorLog, debugLog } from '@/utils/config';
+
+import { DetailedMetricsPanel } from './DetailedMetricsPanel';
+import { HealthIndicators } from './HealthIndicators';
+import { ScoreDisplay } from './ScoreDisplay';
 
 /**
  * AnalysisPanel component responsible for showing analysis results
  */
 export class AnalysisPanel {
-  private ui: ShadowRootContentScriptUi<AnalysisPanelMountData> | null = null;
-  private contentContainer!: HTMLElement;
-  private headerBar!: HTMLElement;
-  private dragService!: DragService;
-  private scoreDisplay!: ScoreDisplay;
-  private healthIndicators!: HealthIndicators;
-  private detailedMetricsPanel!: DetailedMetricsPanel;
   private closeCallback?: () => void;
+  private contentContainer!: HTMLElement;
   private ctx: ContentScriptContext;
+  private detailedMetricsPanel!: DetailedMetricsPanel;
+  private dragService!: DragService;
+  private headerBar!: HTMLElement;
+  private healthIndicators!: HealthIndicators;
   private internalOverlay: HTMLElement | null = null;
+  private scoreDisplay!: ScoreDisplay;
+  private ui: null | ShadowRootContentScriptUi<AnalysisPanelMountData> = null;
 
   /**
    * Create a new analysis panel
@@ -41,6 +42,15 @@ export class AnalysisPanel {
   }
 
   /**
+   * Hide the panel
+   */
+  public hide(): void {
+    if (this.ui?.shadowHost) {
+      this.ui.shadowHost.style.display = 'none';
+    }
+  }
+
+  /**
    * Initialize the UI components
    * Must be called after construction and before using the panel
    */
@@ -48,10 +58,9 @@ export class AnalysisPanel {
     try {
       // Create the shadow root UI using WXT's API
       this.ui = await createShadowRootUi(this.ctx, {
-        name: 'repo-evaluator-panel',
-        position: 'inline',
         anchor: 'body',
         mode: 'open',
+        name: 'repo-evaluator-panel',
         onMount: (container, shadow, shadowHost) => {
           debugLog('ui', 'Mounting AnalysisPanel UI');
 
@@ -76,7 +85,7 @@ export class AnalysisPanel {
           this.internalOverlay.style.width = '100%';
           this.internalOverlay.style.height = '100%';
           this.internalOverlay.style.pointerEvents = 'none'; // Let events pass through by default
-          
+
           // Create the panel container (will be positioned in the overlay)
           const panelContainer = document.createElement('div');
           panelContainer.className =
@@ -96,7 +105,7 @@ export class AnalysisPanel {
 
           // Add the panel container to the overlay
           this.internalOverlay.appendChild(panelContainer);
-          
+
           // Add the overlay to the container
           container.appendChild(this.internalOverlay);
 
@@ -141,16 +150,127 @@ export class AnalysisPanel {
           );
 
           return {
-            panelContainer,
             contentContainer: this.contentContainer,
+            panelContainer,
           };
         },
+        position: 'inline',
       });
 
       debugLog('ui', 'AnalysisPanel UI initialized successfully');
     } catch (error) {
       errorLog('ui', 'Error initializing AnalysisPanel:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Mount the panel to the DOM
+   * Using correct WXT mounting methodology
+   */
+  public async mount(): Promise<void> {
+    // Ensure UI is initialized
+    if (!this.ui) {
+      await this.initialize();
+    }
+
+    // Mount the UI using WXT's mount method
+    try {
+      this.ui?.mount();
+      debugLog('ui', 'AnalysisPanel mounted successfully');
+    } catch (error) {
+      errorLog('ui', 'Error mounting AnalysisPanel UI:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Remove the panel from the DOM
+   */
+  public remove(): void {
+    if (this.ui) {
+      this.ui.remove();
+      this.ui = null;
+    }
+  }
+
+  /**
+   * Populate the panel with analysis data
+   * @param resultData Analysis results to display
+   */
+  public setData(resultData: AnalysisResult): void {
+    if (!this.contentContainer) {
+      errorLog('ui', 'Cannot set data: Panel not initialized');
+      return;
+    }
+
+    if (!resultData) {
+      errorLog('ui', 'Cannot set data: Invalid data provided');
+      return;
+    }
+
+    // Clear previous content
+    this.contentContainer.innerHTML = '';
+
+    // Create a header with repository title
+    const header = document.createElement('div');
+    const headerHtml = `
+      <h2 class="flex items-center text-xl font-semibold mt-6 mb-4 pb-2 border-b border-gray-200 text-gray-800">
+        ${IconHelper.getSvgIconString('repo')}
+        <span class="ml-2">Repository Analysis: ${resultData.repoName}</span>
+      </h2>
+    `;
+    header.innerHTML = headerHtml;
+    this.contentContainer.appendChild(header);
+
+    // Description
+    const description = document.createElement('div');
+    description.className = 'italic text-gray-600 mb-4';
+    description.textContent = resultData.description || 'No description provided';
+    this.contentContainer.appendChild(description);
+
+    // Add score display
+    this.scoreDisplay.setScore(parseFloat(resultData.score));
+    this.contentContainer.appendChild(this.scoreDisplay.getElement());
+
+    // Add health indicators
+    this.healthIndicators.setData(resultData);
+    this.contentContainer.appendChild(this.healthIndicators.getElement());
+
+    // Add detailed metrics panel
+    this.detailedMetricsPanel.setData(resultData);
+    this.contentContainer.appendChild(this.detailedMetricsPanel.getElement());
+
+    // Add footer with disclaimer
+    const footer = document.createElement('div');
+    footer.className = 'mt-6 pt-4 border-t border-gray-200 text-xs text-gray-600';
+    footer.innerHTML = `
+      <p class="mb-1">⚠️ Note: This is an automated evaluation based on repository metrics.</p>
+      <p>For a complete assessment, also consider code quality, community engagement, and the project's specific goals.</p>
+    `;
+
+    this.contentContainer.appendChild(footer);
+  }
+
+  /**
+   * Show the panel
+   */
+  public show(): void {
+    if (this.ui?.shadowHost) {
+      this.ui.shadowHost.style.display = 'block';
+    }
+  }
+
+  /**
+   * Toggle the panel visibility
+   */
+  public toggle(): void {
+    if (this.ui?.shadowHost) {
+      if (this.ui.shadowHost.style.display === 'none') {
+        this.show();
+      } else {
+        this.hide();
+      }
     }
   }
 
@@ -215,125 +335,6 @@ export class AnalysisPanel {
     // Initialize sub-components
     this.scoreDisplay = new ScoreDisplay();
     this.healthIndicators = new HealthIndicators();
-    this.detailedMetricsPanel = new DetailedMetricsPanel(DEBUG_MODE);
-  }
-
-  /**
-   * Populate the panel with analysis data
-   * @param resultData Analysis results to display
-   */
-  public setData(resultData: AnalysisResult): void {
-    if (!this.contentContainer) {
-      errorLog('ui', 'Cannot set data: Panel not initialized');
-      return;
-    }
-
-    if (!resultData) {
-      errorLog('ui', 'Cannot set data: Invalid data provided');
-      return;
-    }
-
-    // Clear previous content
-    this.contentContainer.innerHTML = '';
-
-    // Create a header with repository title
-    const header = document.createElement('div');
-    const headerHtml = `
-      <h2 class="flex items-center text-xl font-semibold mt-6 mb-4 pb-2 border-b border-gray-200 text-gray-800">
-        ${IconHelper.getSvgIconString('repo')}
-        <span class="ml-2">Repository Analysis: ${resultData.repoName}</span>
-      </h2>
-    `;
-    header.innerHTML = headerHtml;
-    this.contentContainer.appendChild(header);
-
-    // Description
-    const description = document.createElement('div');
-    description.className = 'italic text-gray-600 mb-4';
-    description.textContent = resultData.description || 'No description provided';
-    this.contentContainer.appendChild(description);
-
-    // Add score display
-    this.scoreDisplay.setScore(parseFloat(resultData.score));
-    this.contentContainer.appendChild(this.scoreDisplay.getElement());
-
-    // Add health indicators
-    this.healthIndicators.setData(resultData);
-    this.contentContainer.appendChild(this.healthIndicators.getElement());
-
-    // Add detailed metrics panel
-    this.detailedMetricsPanel.setData(resultData);
-    this.contentContainer.appendChild(this.detailedMetricsPanel.getElement());
-
-    // Add footer with disclaimer
-    const footer = document.createElement('div');
-    footer.className = 'mt-6 pt-4 border-t border-gray-200 text-xs text-gray-600';
-    footer.innerHTML = `
-      <p class="mb-1">⚠️ Note: This is an automated evaluation based on repository metrics.</p>
-      <p>For a complete assessment, also consider code quality, community engagement, and the project's specific goals.</p>
-    `;
-
-    this.contentContainer.appendChild(footer);
-  }
-
-  /**
-   * Mount the panel to the DOM
-   * Using correct WXT mounting methodology
-   */
-  public async mount(): Promise<void> {
-    // Ensure UI is initialized
-    if (!this.ui) {
-      await this.initialize();
-    }
-
-    // Mount the UI using WXT's mount method
-    try {
-      this.ui?.mount();
-      debugLog('ui', 'AnalysisPanel mounted successfully');
-    } catch (error) {
-      errorLog('ui', 'Error mounting AnalysisPanel UI:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Remove the panel from the DOM
-   */
-  public remove(): void {
-    if (this.ui) {
-      this.ui.remove();
-      this.ui = null;
-    }
-  }
-
-  /**
-   * Show the panel
-   */
-  public show(): void {
-    if (this.ui?.shadowHost) {
-      this.ui.shadowHost.style.display = 'block';
-    }
-  }
-
-  /**
-   * Hide the panel
-   */
-  public hide(): void {
-    if (this.ui?.shadowHost) {
-      this.ui.shadowHost.style.display = 'none';
-    }
-  }
-
-  /**
-   * Toggle the panel visibility
-   */
-  public toggle(): void {
-    if (this.ui?.shadowHost) {
-      if (this.ui.shadowHost.style.display === 'none') {
-        this.show();
-      } else {
-        this.hide();
-      }
-    }
+    this.detailedMetricsPanel = new DetailedMetricsPanel();
   }
 }

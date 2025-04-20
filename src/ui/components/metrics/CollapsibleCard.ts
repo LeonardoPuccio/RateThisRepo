@@ -4,14 +4,14 @@ import { IconHelper } from '@/ui/helpers/IconHelper';
  * Reusable collapsible card component
  */
 export class CollapsibleCard {
+  private body: HTMLElement;
+  private chevron: HTMLElement;
   private element: HTMLElement;
   private header: HTMLElement;
-  private body: HTMLElement;
+  private iconSpan: HTMLElement;
   private isCollapsed: boolean = false;
   private titleContainer: HTMLElement;
   private titleText: HTMLElement;
-  private iconSpan: HTMLElement;
-  private chevron: HTMLElement;
 
   /**
    * Create a new collapsible card
@@ -95,6 +95,32 @@ export class CollapsibleCard {
   }
 
   /**
+   * Get the card's DOM element
+   * @returns Card element
+   */
+  public getElement(): HTMLElement {
+    return this.element;
+  }
+
+  /**
+   * Get whether the card is currently collapsed
+   * @returns True if collapsed
+   */
+  public isCardCollapsed(): boolean {
+    return this.isCollapsed;
+  }
+
+  /**
+   * Set the card's collapsed state
+   * @param collapsed Whether the card should be collapsed
+   */
+  public setCollapsed(collapsed: boolean): void {
+    if (this.isCollapsed !== collapsed) {
+      this.toggle();
+    }
+  }
+
+  /**
    * Toggle the card's collapsed state
    */
   public toggle(): void {
@@ -113,31 +139,5 @@ export class CollapsibleCard {
     this.chevron.innerHTML = this.isCollapsed
       ? `<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path fill-rule="evenodd" d="M4.22 6.22a.75.75 0 01.53-.22h6.5a.75.75 0 01.53.22l.5.5a.75.75 0 010 1.06l-3.25 3.25a.75.75 0 01-1.06 0L4.72 7.78a.75.75 0 010-1.06l.5-.5z"></path></svg>`
       : `<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path fill-rule="evenodd" d="M7.22 11.22a.75.75 0 001.06 0l3.25-3.25a.75.75 0 000-1.06l-.5-.5a.75.75 0 00-1.06 0L7 9.38 4.03 6.41a.75.75 0 00-1.06 0l-.5.5a.75.75 0 000 1.06l3.25 3.25z"></path></svg>`;
-  }
-
-  /**
-   * Get the card's DOM element
-   * @returns Card element
-   */
-  public getElement(): HTMLElement {
-    return this.element;
-  }
-
-  /**
-   * Set the card's collapsed state
-   * @param collapsed Whether the card should be collapsed
-   */
-  public setCollapsed(collapsed: boolean): void {
-    if (this.isCollapsed !== collapsed) {
-      this.toggle();
-    }
-  }
-
-  /**
-   * Get whether the card is currently collapsed
-   * @returns True if collapsed
-   */
-  public isCardCollapsed(): boolean {
-    return this.isCollapsed;
   }
 }

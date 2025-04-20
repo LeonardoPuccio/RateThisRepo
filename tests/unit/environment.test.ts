@@ -1,5 +1,5 @@
 // tests/unit/environment.test.ts
-import { describe, test, expect, beforeAll } from 'vitest';
+import { beforeAll, describe, expect, test } from 'vitest';
 
 describe('Environment Sanity Checks', () => {
   // Move environment logging inside, ensuring jsdom is set up
@@ -27,7 +27,10 @@ describe('Environment Sanity Checks', () => {
     console.log('Type of encoded:', Object.prototype.toString.call(encoded));
     console.log('Uint8Array constructor name:', Uint8Array?.name);
     console.log('global.Uint8Array constructor name:', global?.Uint8Array?.name);
-    console.log('window.Uint8Array constructor name:', typeof window !== 'undefined' ? window?.Uint8Array?.name : 'N/A');
+    console.log(
+      'window.Uint8Array constructor name:',
+      typeof window !== 'undefined' ? window?.Uint8Array?.name : 'N/A'
+    );
 
     expect(encoded instanceof Uint8Array).toBe(true);
   });

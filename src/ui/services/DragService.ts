@@ -7,7 +7,7 @@ export class DragService {
   private isDragging: boolean = false;
   private offsetX: number = 0;
   private offsetY: number = 0;
-  
+
   /**
    * Create a new drag service
    * @param element The element to make draggable
@@ -18,20 +18,23 @@ export class DragService {
     this.handle = handle || element;
     this.setupEventListeners();
   }
-  
+
   /**
-   * Set up event listeners for dragging
+   * Disable dragging
    */
-  private setupEventListeners(): void {
-    this.handle.addEventListener('mousedown', this.onMouseDown.bind(this));
-    document.addEventListener('mousemove', this.onMouseMove.bind(this));
-    document.addEventListener('mouseup', this.onMouseUp.bind(this));
-    
-    // Add visual cue for draggable element
-    this.handle.style.cursor = 'move';
-    this.handle.style.userSelect = 'none';
+  public disable(): void {
+    this.handle.removeEventListener('mousedown', this.onMouseDown.bind(this));
+    this.handle.style.cursor = 'default';
   }
-  
+
+  /**
+   * Enable dragging
+   */
+  public enable(): void {
+    this.handle.addEventListener('mousedown', this.onMouseDown.bind(this));
+    this.handle.style.cursor = 'move';
+  }
+
   /**
    * Handle mouse down event
    * @param e Mouse event
@@ -40,25 +43,25 @@ export class DragService {
     this.isDragging = true;
     this.offsetX = e.clientX - this.element.getBoundingClientRect().left;
     this.offsetY = e.clientY - this.element.getBoundingClientRect().top;
-    
+
     this.handle.style.cursor = 'grabbing';
   }
-  
+
   /**
    * Handle mouse move event
    * @param e Mouse event
    */
   private onMouseMove(e: MouseEvent): void {
     if (!this.isDragging) return;
-    
+
     const left = e.clientX - this.offsetX;
     const top = e.clientY - this.offsetY;
-    
+
     this.element.style.left = left + 'px';
     this.element.style.right = 'auto';
     this.element.style.top = top + 'px';
   }
-  
+
   /**
    * Handle mouse up event
    */
@@ -68,20 +71,17 @@ export class DragService {
       this.handle.style.cursor = 'move';
     }
   }
-  
+
   /**
-   * Disable dragging
+   * Set up event listeners for dragging
    */
-  public disable(): void {
-    this.handle.removeEventListener('mousedown', this.onMouseDown.bind(this));
-    this.handle.style.cursor = 'default';
-  }
-  
-  /**
-   * Enable dragging
-   */
-  public enable(): void {
+  private setupEventListeners(): void {
     this.handle.addEventListener('mousedown', this.onMouseDown.bind(this));
+    document.addEventListener('mousemove', this.onMouseMove.bind(this));
+    document.addEventListener('mouseup', this.onMouseUp.bind(this));
+
+    // Add visual cue for draggable element
     this.handle.style.cursor = 'move';
+    this.handle.style.userSelect = 'none';
   }
 }

@@ -1,22 +1,27 @@
 import { AnalysisResult } from '@/interfaces/analysis.interface';
 import { IconHelper } from '@/ui/helpers/IconHelper';
-import { debugLog } from '@/utils/config';
+import { debugLog } from '@/utils/debug';
 
 /**
  * Panel for displaying strengths and improvement recommendations
  */
 export class InsightsPanel {
   private container: HTMLElement;
-  private isDebugMode: boolean;
 
   /**
    * Create a new insights panel
-   * @param debugMode Enable debug logging
    */
-  constructor(debugMode = false) {
-    this.isDebugMode = debugMode;
+  constructor() {
     this.container = document.createElement('div');
     this.container.className = 'mt-8';
+  }
+
+  /**
+   * Get the container element
+   * @returns The container DOM element
+   */
+  public getElement(): HTMLElement {
+    return this.container;
   }
 
   /**
@@ -68,106 +73,6 @@ export class InsightsPanel {
     insightsContainer.appendChild(this.createImprovementsColumn(recommendations));
 
     this.container.appendChild(insightsContainer);
-  }
-
-  /**
-   * Generate default strengths when data is missing
-   * @param data Analysis result data
-   * @returns Array of default strength messages
-   */
-  private generateDefaultStrengths(data: AnalysisResult): string[] {
-    debugLog('ui', 'Generating default strengths');
-
-    // Instead of generating potentially misleading defaults,
-    // provide a message that indicates these are placeholders
-    return [
-      '⚠️ [Placeholder] This repository has basic GitHub features set up',
-      '⚠️ [Placeholder] Documentation exists to some degree',
-      '⚠️ [Placeholder] Repository structure follows standard practices',
-    ];
-  }
-
-  /**
-   * Generate default recommendations when data is missing
-   * @param data Analysis result data
-   * @returns Array of default recommendation messages
-   */
-  private generateDefaultRecommendations(data: AnalysisResult): string[] {
-    debugLog('ui', 'Generating default recommendations');
-
-    // Instead of generating potentially misleading defaults,
-    // provide a message that indicates these are placeholders
-    return [
-      '⚠️ [Placeholder] Consider enhancing documentation for better user experience',
-      '⚠️ [Placeholder] Improve project sustainability with more community engagement',
-    ];
-  }
-
-  /**
-   * Create strengths column
-   * @param strengths Array of strength messages
-   * @returns Strengths column element
-   */
-  private createStrengthsColumn(strengths: string[]): HTMLElement {
-    // Create column container with Tailwind classes
-    const strengthsColumn = document.createElement('div');
-    strengthsColumn.className = 'flex-1';
-
-    // Create card container with Tailwind classes
-    const strengthsCard = document.createElement('div');
-    strengthsCard.className =
-      'bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden';
-
-    // Create card header with icon using Tailwind classes
-    const strengthsHeader = document.createElement('div');
-    strengthsHeader.className = 'flex items-center px-4 py-3 bg-green-50 border-b border-gray-200';
-
-    // Add icon with proper color
-    const iconSpan = document.createElement('span');
-    iconSpan.className = 'text-green-600 mr-2';
-    iconSpan.innerHTML = IconHelper.getSvgIconString('check');
-
-    // Add header text
-    const headerText = document.createElement('span');
-    headerText.className = 'font-medium text-black';
-    headerText.textContent = 'Strengths';
-
-    // Assemble header
-    strengthsHeader.appendChild(iconSpan);
-    strengthsHeader.appendChild(headerText);
-    strengthsCard.appendChild(strengthsHeader);
-
-    // Create card body with Tailwind classes
-    const strengthsBody = document.createElement('div');
-    strengthsBody.className = 'px-4 py-3 text-black';
-
-    // Create and populate the list with Tailwind classes
-    const strengthsList = document.createElement('ul');
-    strengthsList.className = 'list-disc pl-5 space-y-2';
-
-    // Ensure we always have content
-    const displayStrengths =
-      strengths && strengths.length > 0
-        ? strengths
-        : ['⚠️ [No strengths identified] Analysis could not determine specific strengths'];
-
-    debugLog('ui', 'Creating strengths list with:', displayStrengths);
-
-    // Add each strength as a list item with innerHTML to preserve emojis
-    displayStrengths.forEach(strength => {
-      debugLog('ui', 'Adding strength:', strength);
-      const item = document.createElement('li');
-      item.className = 'text-gray-800';
-      item.innerHTML = strength;
-      strengthsList.appendChild(item);
-    });
-
-    // Assemble the card
-    strengthsBody.appendChild(strengthsList);
-    strengthsCard.appendChild(strengthsBody);
-    strengthsColumn.appendChild(strengthsCard);
-
-    return strengthsColumn;
   }
 
   /**
@@ -239,10 +144,102 @@ export class InsightsPanel {
   }
 
   /**
-   * Get the container element
-   * @returns The container DOM element
+   * Create strengths column
+   * @param strengths Array of strength messages
+   * @returns Strengths column element
    */
-  public getElement(): HTMLElement {
-    return this.container;
+  private createStrengthsColumn(strengths: string[]): HTMLElement {
+    // Create column container with Tailwind classes
+    const strengthsColumn = document.createElement('div');
+    strengthsColumn.className = 'flex-1';
+
+    // Create card container with Tailwind classes
+    const strengthsCard = document.createElement('div');
+    strengthsCard.className =
+      'bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden';
+
+    // Create card header with icon using Tailwind classes
+    const strengthsHeader = document.createElement('div');
+    strengthsHeader.className = 'flex items-center px-4 py-3 bg-green-50 border-b border-gray-200';
+
+    // Add icon with proper color
+    const iconSpan = document.createElement('span');
+    iconSpan.className = 'text-green-600 mr-2';
+    iconSpan.innerHTML = IconHelper.getSvgIconString('check');
+
+    // Add header text
+    const headerText = document.createElement('span');
+    headerText.className = 'font-medium text-black';
+    headerText.textContent = 'Strengths';
+
+    // Assemble header
+    strengthsHeader.appendChild(iconSpan);
+    strengthsHeader.appendChild(headerText);
+    strengthsCard.appendChild(strengthsHeader);
+
+    // Create card body with Tailwind classes
+    const strengthsBody = document.createElement('div');
+    strengthsBody.className = 'px-4 py-3 text-black';
+
+    // Create and populate the list with Tailwind classes
+    const strengthsList = document.createElement('ul');
+    strengthsList.className = 'list-disc pl-5 space-y-2';
+
+    // Ensure we always have content
+    const displayStrengths =
+      strengths && strengths.length > 0
+        ? strengths
+        : ['⚠️ [No strengths identified] Analysis could not determine specific strengths'];
+
+    debugLog('ui', 'Creating strengths list with:', displayStrengths);
+
+    // Add each strength as a list item with innerHTML to preserve emojis
+    displayStrengths.forEach(strength => {
+      debugLog('ui', 'Adding strength:', strength);
+      const item = document.createElement('li');
+      item.className = 'text-gray-800';
+      item.innerHTML = strength;
+      strengthsList.appendChild(item);
+    });
+
+    // Assemble the card
+    strengthsBody.appendChild(strengthsList);
+    strengthsCard.appendChild(strengthsBody);
+    strengthsColumn.appendChild(strengthsCard);
+
+    return strengthsColumn;
+  }
+
+  /**
+   * Generate default recommendations when data is missing
+   * @param data Analysis result data
+   * @returns Array of default recommendation messages
+   */
+  private generateDefaultRecommendations(data: AnalysisResult): string[] {
+    debugLog('ui', 'Generating default recommendations');
+
+    // Instead of generating potentially misleading defaults,
+    // provide a message that indicates these are placeholders
+    return [
+      '⚠️ [Placeholder] Consider enhancing documentation for better user experience',
+      '⚠️ [Placeholder] Improve project sustainability with more community engagement',
+    ];
+  }
+
+  /**
+   * Generate default strengths when data is missing
+   * @param data Analysis result data
+   * @returns Array of default strength messages
+   */
+  private generateDefaultStrengths(data: AnalysisResult): string[] {
+    debugLog('ui', 'Generating default strengths');
+
+    // Instead of generating potentially misleading defaults,
+    // provide a message that indicates these are placeholders
+    return [
+      '⚠️ [Placeholder] This repository has basic GitHub features set up',
+      '⚠️ [Placeholder] Documentation exists to some degree',
+      '⚠️ [Placeholder] Repository structure follows standard practices',
+    ];
   }
 }

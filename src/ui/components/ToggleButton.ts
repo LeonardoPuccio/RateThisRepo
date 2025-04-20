@@ -1,22 +1,22 @@
+import { ToggleButtonMountData } from '@/ui/interfaces/ui-interfaces';
+import { BUTTON_CLASSES } from '@/ui/styles/button-animations';
+import { debugLog, errorLog, logUIState } from '@/utils/debug';
+import { ContentScriptContext } from 'wxt/utils/content-script-context';
 import {
   createShadowRootUi,
   ShadowRootContentScriptUi,
 } from 'wxt/utils/content-script-ui/shadow-root';
-import { ContentScriptContext } from 'wxt/utils/content-script-context';
-import { debugLog, errorLog } from '@/utils/config';
-import { ToggleButtonMountData } from '@/ui/interfaces/ui-interfaces';
-import { BUTTON_CLASSES } from '@/ui/styles/button-animations';
 
 /**
  * ToggleButton component responsible for the floating action button
  * that toggles the analysis panel
  */
 export class ToggleButton {
-  private ui: ShadowRootContentScriptUi<ToggleButtonMountData> | null = null;
   private button!: HTMLButtonElement;
-  private tooltip!: HTMLDivElement;
-  private toggleCallback: () => void;
   private ctx: ContentScriptContext;
+  private toggleCallback: () => void;
+  private tooltip!: HTMLDivElement;
+  private ui: null | ShadowRootContentScriptUi<ToggleButtonMountData> = null;
 
   /**
    * Create a new toggle button
@@ -37,10 +37,9 @@ export class ToggleButton {
     try {
       // Create the shadow root UI using WXT's API
       this.ui = await createShadowRootUi(this.ctx, {
-        name: 'repo-evaluator-button',
-        position: 'inline',
         anchor: 'body',
         mode: 'open',
+        name: 'repo-evaluator-button',
         onMount: (container, shadow, shadowHost) => {
           debugLog('ui', 'Mounting ToggleButton UI in shadow DOM');
 
@@ -110,12 +109,13 @@ export class ToggleButton {
 
           // Return DOM references for later cleanup
           return {
-            container,
             button: this.button,
-            tooltip: this.tooltip,
             buttonContainer,
+            container,
+            tooltip: this.tooltip,
           };
         },
+        position: 'inline',
       });
 
       debugLog('ui', 'ToggleButton UI initialization complete');
@@ -137,6 +137,8 @@ export class ToggleButton {
     try {
       this.ui?.mount();
       debugLog('ui', 'ToggleButton mounted successfully');
+      // Log UI state after mounting for debugging
+      setTimeout(() => logUIState('button-mounted'), 100);
     } catch (error) {
       errorLog('ui', 'Error mounting ToggleButton UI:', error);
       throw error;
@@ -148,8 +150,11 @@ export class ToggleButton {
    */
   public remove(): void {
     if (this.ui) {
+      debugLog('ui', 'Removing ToggleButton');
       this.ui.remove();
       this.ui = null;
+      // Log UI state after removing for debugging
+      setTimeout(() => logUIState('button-removed'), 100);
     }
   }
 
@@ -159,6 +164,8 @@ export class ToggleButton {
    */
   public setActive(active: boolean): void {
     if (this.button) {
+      debugLog('ui', `Setting ToggleButton active state to: ${active}`);
+
       // Make sure to toggle classes correctly for animation using our constants
       if (active) {
         this.button.classList.remove(BUTTON_CLASSES.DEFAULT);
@@ -167,15 +174,19 @@ export class ToggleButton {
         this.button.classList.remove(BUTTON_CLASSES.ACTIVE);
         this.button.classList.add(BUTTON_CLASSES.DEFAULT);
       }
+
+      // Log UI state after state change for debugging
+      setTimeout(() => logUIState(`button-state-changed-${active ? 'active' : 'inactive'}`), 100);
     }
   }
 
   /**
-   * Show the tooltip
+   * Handle button click
    */
-  private showTooltip(): void {
-    if (this.tooltip) {
-      this.tooltip.classList.add(BUTTON_CLASSES.TOOLTIP_VISIBLE);
+  private handleClick(): void {
+    debugLog('ui', 'ToggleButton clicked');
+    if (this.toggleCallback) {
+      this.toggleCallback();
     }
   }
 
@@ -189,11 +200,11 @@ export class ToggleButton {
   }
 
   /**
-   * Handle button click
+   * Show the tooltip
    */
-  private handleClick(): void {
-    if (this.toggleCallback) {
-      this.toggleCallback();
+  private showTooltip(): void {
+    if (this.tooltip) {
+      this.tooltip.classList.add(BUTTON_CLASSES.TOOLTIP_VISIBLE);
     }
   }
 }

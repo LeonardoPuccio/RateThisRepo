@@ -1,6 +1,6 @@
 import { AnalysisResult } from '@/interfaces/analysis.interface';
-import { debugLog } from '@/utils/config';
 import { ACTIONS } from '@/utils/constants';
+import { debugLog } from '@/utils/debug';
 import { RepositoryAnalyzer } from '@/utils/repository-analyzer';
 
 import { errorHandler } from './error-handler';

@@ -23,6 +23,14 @@ export class MethodologyCard {
   }
 
   /**
+   * Get the card element
+   * @returns The card DOM element
+   */
+  public getElement(): HTMLElement {
+    return this.card.getElement();
+  }
+
+  /**
    * Create the methodology content element
    * @returns Content element with methodology description
    */
@@ -47,27 +55,27 @@ export class MethodologyCard {
     // Define the methodology for each category
     const categories = [
       {
-        name: 'Popularity (20%)',
         description: 'Based on stars and fork counts, measuring community adoption and interest.',
+        name: 'Popularity (20%)',
       },
       {
-        name: 'Activity (20%)',
         description:
           'Evaluates recency of updates, commit frequency, and ongoing development pace.',
+        name: 'Activity (20%)',
       },
       {
-        name: 'Community (20%)',
         description:
           'Assesses contributor count, fork usage, and bus factor (knowledge distribution).',
+        name: 'Community (20%)',
       },
       {
-        name: 'Maintenance (20%)',
         description: 'Measures issue resolution rate, PR handling efficiency, and project health.',
+        name: 'Maintenance (20%)',
       },
       {
-        name: 'Documentation (20%)',
         description:
           'Evaluates README quality, Wiki presence, website availability, and description completeness.',
+        name: 'Documentation (20%)',
       },
     ];
 
@@ -102,13 +110,5 @@ export class MethodologyCard {
     content.appendChild(disclaimer);
 
     return content;
-  }
-
-  /**
-   * Get the card element
-   * @returns The card DOM element
-   */
-  public getElement(): HTMLElement {
-    return this.card.getElement();
   }
 }

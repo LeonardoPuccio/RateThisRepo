@@ -1,6 +1,6 @@
 import { AnalysisResult } from '@/interfaces/analysis.interface';
 import { AnalysisPanel } from '@/ui/components/AnalysisPanel';
-import { debugLog, errorLog } from '@/utils/config';
+import { debugLog, errorLog, logUIState } from '@/utils/debug';
 import { type ContentScriptContext } from 'wxt/utils/content-script-context';
 
 import { errorHandler } from './error-handler';
@@ -41,6 +41,7 @@ export class PanelManager {
     try {
       // Create panel if it doesn't exist
       if (!this.analysisPanel) {
+        debugLog('ui', 'Creating and initializing AnalysisPanel');
         this.analysisPanel = new AnalysisPanel(undefined, this.ctx);
         await this.analysisPanel.initialize();
         await this.analysisPanel.mount();
@@ -51,10 +52,16 @@ export class PanelManager {
       this.analysisPanel.show();
 
       debugLog('ui', 'Analysis panel displayed successfully');
+
+      // Log UI state after panel is displayed for debugging
+      setTimeout(() => logUIState('panel-displayed'), 300);
     } catch (error) {
+      errorLog('ui', 'Error displaying analysis panel:', error);
       errorHandler.handleError(error as Error, 'ui', {
         autoHideTimeout: 5000,
       });
+      // Log UI state on error for debugging
+      setTimeout(() => logUIState('panel-display-error'), 100);
     }
   }
 
@@ -64,10 +71,16 @@ export class PanelManager {
   public hideAnalysisPanel(): void {
     if (this.analysisPanel) {
       try {
+        debugLog('ui', 'Hiding analysis panel');
         this.analysisPanel.hide();
         debugLog('ui', 'Analysis panel hidden');
+
+        // Log UI state after panel is hidden for debugging
+        setTimeout(() => logUIState('panel-hidden'), 300);
       } catch (error) {
         errorLog('ui', 'Error hiding analysis panel:', error);
+        // Log UI state on error for debugging
+        setTimeout(() => logUIState('panel-hide-error'), 100);
       }
     }
   }
@@ -85,11 +98,17 @@ export class PanelManager {
   public removeAnalysisPanel(): void {
     if (this.analysisPanel) {
       try {
+        debugLog('ui', 'Removing analysis panel');
         this.analysisPanel.remove();
         this.analysisPanel = null;
         debugLog('ui', 'Analysis panel removed');
+
+        // Log UI state after panel is removed for debugging
+        setTimeout(() => logUIState('panel-removed'), 100);
       } catch (error) {
         errorLog('ui', 'Error removing analysis panel:', error);
+        // Log UI state on error for debugging
+        setTimeout(() => logUIState('panel-remove-error'), 100);
       }
     }
   }

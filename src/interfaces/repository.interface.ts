@@ -1,3 +1,35 @@
+export interface CommitData {
+  commit: {
+    author: {
+      date: string;
+      email: string;
+      name: string;
+    };
+    message: string;
+  };
+  sha: string;
+}
+
+export interface ContributorData {
+  contributions: number;
+  id: number;
+  login: string;
+}
+
+export interface IssueData {
+  closed_at: null | string;
+  created_at: string;
+  id: number;
+  number: number;
+  state: 'closed' | 'open';
+  title: string;
+  updated_at: string;
+}
+
+export interface LanguageData {
+  [language: string]: number;
+}
+
 export interface License {
   name: string;
   spdx_id?: string;
@@ -5,93 +37,61 @@ export interface License {
 }
 
 export interface Owner {
-  login: string;
   id: number;
+  login: string;
   type: string;
 }
 
-export interface RepositoryData {
-  id: number;
-  name: string;
-  full_name: string;
-  owner: Owner;
-  private: boolean;
-  html_url: string;
-  description: string | null;
-  fork: boolean;
-  created_at: string;
-  updated_at: string;
-  pushed_at: string;
-  homepage: string | null;
-  size: number;
-  stargazers_count: number;
-  watchers_count: number;
-  language: string | null;
-  has_issues: boolean;
-  has_projects: boolean;
-  has_downloads: boolean;
-  has_wiki: boolean;
-  has_pages: boolean;
-  has_discussions: boolean;
-  forks_count: number;
-  archived: boolean;
-  disabled: boolean;
-  open_issues_count: number;
-  license: License | null;
-  forks: number;
-  open_issues: number;
-  watchers: number;
-  default_branch: string;
-  subscribers_count?: number;
-}
-
-export interface IssueData {
-  id: number;
-  number: number;
-  title: string;
-  state: 'open' | 'closed';
-  created_at: string;
-  updated_at: string;
-  closed_at: string | null;
-}
-
 export interface PullRequestData {
-  id: number;
-  number: number;
-  title: string;
-  state: 'open' | 'closed';
+  closed_at: null | string;
   created_at: string;
-  updated_at: string;
-  closed_at: string | null;
-  merged_at: string | null;
-}
-
-export interface ContributorData {
   id: number;
-  login: string;
-  contributions: number;
-}
-
-export interface CommitData {
-  sha: string;
-  commit: {
-    author: {
-      name: string;
-      email: string;
-      date: string;
-    };
-    message: string;
-  };
+  merged_at: null | string;
+  number: number;
+  state: 'closed' | 'open';
+  title: string;
+  updated_at: string;
 }
 
 export interface ReleaseData {
-  id: number;
-  tag_name: string;
-  name: string;
   created_at: string;
+  id: number;
+  name: string;
   published_at: string;
+  tag_name: string;
 }
 
-export interface LanguageData {
-  [language: string]: number;
+export interface RepositoryData {
+  archived: boolean;
+  created_at: string;
+  default_branch: string;
+  description: null | string;
+  disabled: boolean;
+  fork: boolean;
+  forks: number;
+  forks_count: number;
+  full_name: string;
+  has_discussions: boolean;
+  has_downloads: boolean;
+  has_issues: boolean;
+  has_pages: boolean;
+  has_projects: boolean;
+  has_wiki: boolean;
+  homepage: null | string;
+  html_url: string;
+  id: number;
+  language: null | string;
+  license: License | null;
+  name: string;
+  open_issues: number;
+  open_issues_count: number;
+  owner: Owner;
+  private: boolean;
+  pushed_at: string;
+  size: number;
+  stargazers_count: number;
+  subscribers_count?: number;
+  updated_at: string;
+  watchers: number;
+  watchers_count: number;
 }

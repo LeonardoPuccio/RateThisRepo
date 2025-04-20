@@ -1,6 +1,7 @@
 import { ErrorPanelMountData } from '@/ui/interfaces/ui-interfaces';
 import { BUTTON_CLASSES } from '@/ui/styles/button-animations';
-import { type DEBUG_CONFIG, errorLog } from '@/utils/config';
+import { DEBUG_CONFIG } from '@/utils/config';
+import { errorLog, logUIState } from '@/utils/debug';
 import { ContentScriptContext } from 'wxt/utils/content-script-context';
 import { createShadowRootUi } from 'wxt/utils/content-script-ui/shadow-root';
 
@@ -51,6 +52,9 @@ export class ErrorHandler {
   ): Promise<void> {
     // Always log the error
     errorLog(context, error.message, error);
+
+    // Log UI state when error occurs
+    setTimeout(() => logUIState(`error-occurred-${context}`), 100);
 
     // Display the error using Shadow DOM
     await this.displayError(error, context, options);
@@ -115,6 +119,8 @@ export class ErrorHandler {
           // Add event listener for close button
           closeButton.addEventListener('click', () => {
             errorUi.remove();
+            // Log UI state after error panel is closed
+            setTimeout(() => logUIState('error-panel-closed'), 100);
           });
 
           // Critical: Add wheel event handler to the error container
@@ -148,16 +154,23 @@ export class ErrorHandler {
       // Mount the error UI using WXT's mount method
       errorUi.mount();
 
+      // Log UI state after error panel is displayed
+      setTimeout(() => logUIState('error-panel-displayed'), 300);
+
       // Auto-remove after the specified timeout
       if (mergedOptions.autoHideTimeout) {
         setTimeout(() => {
           errorUi.remove();
+          // Log UI state after error panel is auto-removed
+          setTimeout(() => logUIState('error-panel-auto-removed'), 100);
         }, mergedOptions.autoHideTimeout);
       }
     } catch (uiError) {
       // Fallback to simple error notification if shadow DOM fails
       errorLog('ui', 'Error creating error UI:', uiError);
       console.error(`Error in ${context}: ${error.message}`);
+      // Log UI state after UI creation error
+      setTimeout(() => logUIState('error-panel-creation-failed'), 100);
     }
   }
 }

@@ -1,22 +1,27 @@
 import { ScoreCategory } from '@/interfaces/analysis.interface';
 import { IconHelper } from '@/ui/helpers/IconHelper';
-import { debugLog } from '@/utils/config';
+import { debugLog } from '@/utils/debug';
 
 /**
  * Panel for displaying category scores with progress bars
  */
 export class CategoryScoresPanel {
   private container: HTMLElement;
-  private isDebugMode: boolean;
 
   /**
    * Create a new category scores panel
-   * @param debugMode Enable debug logging
    */
-  constructor(debugMode = false) {
-    this.isDebugMode = debugMode;
+  constructor() {
     this.container = document.createElement('div');
     this.container.className = 'mt-6';
+  }
+
+  /**
+   * Get the container element
+   * @returns The container DOM element
+   */
+  public getElement(): HTMLElement {
+    return this.container;
   }
 
   /**
@@ -113,22 +118,14 @@ export class CategoryScoresPanel {
    */
   private getCategoryDefaultDescription(categoryName: string): string {
     const descriptions: Record<string, string> = {
-      Popularity: 'Based on star count and community adoption',
       Activity: 'Based on recency of updates and development pace',
       Community: 'Based on contributor count, forks, and bus factor',
-      Maintenance: 'Based on issue resolution, PR handling, and project structure',
       Documentation:
         'Based on README quality, website/wiki presence, and overall project documentation',
+      Maintenance: 'Based on issue resolution, PR handling, and project structure',
+      Popularity: 'Based on star count and community adoption',
     };
 
     return descriptions[categoryName] || 'Score based on repository metrics';
-  }
-
-  /**
-   * Get the container element
-   * @returns The container DOM element
-   */
-  public getElement(): HTMLElement {
-    return this.container;
   }
 }
