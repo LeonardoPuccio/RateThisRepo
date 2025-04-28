@@ -47,6 +47,15 @@ export class RepositoryAnalyzer {
           this.api.getReleases() as Promise<ReleaseData[]>,
           this.api.getLanguages() as Promise<LanguageData>,
         ]);
+      debugLog('analysis', 'Raw API Data Fetched:', {
+        commits,
+        contributors,
+        issues,
+        languages,
+        pullRequests,
+        releases,
+        repoData,
+      });
 
       // Calculate basic repository information
       const stars = repoData.stargazers_count;
@@ -92,10 +101,21 @@ export class RepositoryAnalyzer {
 
       // Calculate release frequency
       const releaseCount = releases ? releases.length : 0;
-      const avgReleaseFrequency =
-        releaseCount > 1 && daysSinceCreation > 30
-          ? (daysSinceCreation / releaseCount).toFixed(0)
-          : 'N/A';
+      let avgReleaseFrequency: string;
+
+      if (releaseCount === 0) {
+        avgReleaseFrequency = 'N/A';
+      } else if (releaseCount === 1) {
+        // If there's only one release, show days since that release
+        const releaseDate = new Date(releases[0].published_at);
+        const daysSinceRelease = Math.floor(
+          (new Date().getTime() - releaseDate.getTime()) / (1000 * 60 * 60 * 24)
+        );
+        avgReleaseFrequency = `${daysSinceRelease}`;
+      } else {
+        // Multiple releases - calculate average days between them
+        avgReleaseFrequency = (daysSinceCreation / releaseCount).toFixed(0);
+      }
 
       // Calculate bus factor
       const busFactor = BusFactorCalculator.calculate(contributors);
@@ -271,7 +291,7 @@ export class RepositoryAnalyzer {
 
       return result;
     } catch (error) {
-      console.error('Error analyzing repository:', error);
+      errorLog('analysis', 'Error analyzing repository:', error);
       throw error;
     }
   }

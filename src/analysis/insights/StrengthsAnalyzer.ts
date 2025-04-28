@@ -115,12 +115,12 @@ export class StrengthsAnalyzer {
 
     if (hasWebsite && hasReadme && readmeLength > 1000) {
       strengths.push('📚 Comprehensive documentation with detailed README and project website');
-    } else if (hasWiki && hasReadme) {
-      strengths.push('📚 Well-documented with both README and Wiki');
     } else if (hasWebsite && hasReadme) {
       strengths.push('📚 Well-documented with both README and project website');
     } else if (hasReadme && readmeLength > 1000) {
       strengths.push('📄 Detailed README with comprehensive information');
+    } else if (hasReadme) {
+      strengths.push('📄 Project provides README documentation');
     }
 
     return strengths;

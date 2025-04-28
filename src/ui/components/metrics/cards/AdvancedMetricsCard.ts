@@ -68,7 +68,7 @@ export class AdvancedMetricsCard {
             ? 'Basic'
             : 'No README',
       ],
-      ['Has Wiki', data.hasWiki ? 'Yes' : 'No'],
+      ['Wiki Enabled', data.hasWiki ? 'Yes' : 'No'],
       ['Has Website', data.hasWebsite ? 'Yes' : 'No'],
     ];
 

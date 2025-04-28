@@ -56,23 +56,90 @@ export class InsightsPanel {
     const insightsContainer = document.createElement('div');
     insightsContainer.className = 'flex flex-col md:flex-row gap-4';
 
-    // Generate default strengths if none are provided or empty
-    const strengths =
-      data.strengths && data.strengths.length > 0
-        ? data.strengths
-        : this.generateDefaultStrengths();
+    // Add strengths column
+    insightsContainer.appendChild(this.createStrengthsColumn(data.strengths || []));
 
-    // Generate default recommendations if none are provided or empty
-    const recommendations =
-      data.recommendations && data.recommendations.length > 0
-        ? data.recommendations
-        : this.generateDefaultRecommendations();
-
-    // Add both columns to the container
-    insightsContainer.appendChild(this.createStrengthsColumn(strengths));
-    insightsContainer.appendChild(this.createImprovementsColumn(recommendations));
+    // Check if there are specific recommendations from the analyzer
+    if (data.recommendations && data.recommendations.length > 0) {
+      // Show actual data-based recommendations
+      insightsContainer.appendChild(this.createImprovementsColumn(data.recommendations));
+    } else if (parseFloat(data.score) >= 80) {
+      // For high-scoring repositories with no recommendations, show a positive message
+      insightsContainer.appendChild(this.createPositiveFeedbackColumn());
+    } else {
+      // No specific recommendations but not a high score
+      // Provide some data-driven insights based on the metrics
+      insightsContainer.appendChild(this.createDataDrivenInsightsColumn(data));
+    }
 
     this.container.appendChild(insightsContainer);
+  }
+
+  /**
+   * Create a column with data-driven insights based on repository metrics
+   * @param data Analysis result data
+   * @returns Insights column element
+   */
+  private createDataDrivenInsightsColumn(data: AnalysisResult): HTMLElement {
+    // Create column container with Tailwind classes
+    const column = document.createElement('div');
+    column.className = 'flex-1';
+
+    // Create card container with Tailwind classes
+    const card = document.createElement('div');
+    card.className = 'bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden';
+
+    // Create card header with icon using Tailwind classes
+    const header = document.createElement('div');
+    header.className = 'flex items-center px-4 py-3 bg-yellow-50 border-b border-gray-200';
+
+    // Add icon with proper color
+    const iconSpan = document.createElement('span');
+    iconSpan.className = 'text-yellow-600 mr-2';
+    iconSpan.innerHTML = IconHelper.getSvgIconString('warning');
+
+    // Add header text
+    const headerText = document.createElement('span');
+    headerText.className = 'font-medium text-black';
+    headerText.textContent = 'Weaknesses';
+
+    // Assemble header
+    header.appendChild(iconSpan);
+    header.appendChild(headerText);
+    card.appendChild(header);
+
+    // Create card body with Tailwind classes
+    const body = document.createElement('div');
+    body.className = 'px-4 py-3 text-black';
+
+    // Create description text
+    const description = document.createElement('p');
+    description.className = 'mb-3 text-gray-700';
+    description.textContent =
+      'Based on our analysis, this repository is performing well in several areas, but there may be opportunities for improvement:';
+    body.appendChild(description);
+
+    // Generate data-driven insights
+    const insights = this.generateDataDrivenInsights(data);
+
+    // Create and populate the list with Tailwind classes
+    const list = document.createElement('ul');
+    list.className = 'list-disc pl-5 space-y-2';
+
+    // Add each insight as a list item
+    insights.forEach(insight => {
+      const item = document.createElement('li');
+      item.className = 'text-gray-800';
+      item.innerHTML = insight;
+      list.appendChild(item);
+    });
+
+    // Assemble the card
+    body.appendChild(list);
+    card.appendChild(body);
+    column.appendChild(card);
+
+    return column;
   }
 
   /**
@@ -114,20 +181,21 @@ export class InsightsPanel {
     const improvementsBody = document.createElement('div');
     improvementsBody.className = 'px-4 py-3 text-black';
 
+    // Add description about how these affect score
+    const description = document.createElement('p');
+    description.className = 'mb-3 text-gray-700';
+    description.textContent =
+      "Our analysis identified these specific areas that could improve your repository's quality score:";
+    improvementsBody.appendChild(description);
+
     // Create and populate the list with Tailwind classes
     const improvementsList = document.createElement('ul');
     improvementsList.className = 'list-disc pl-5 space-y-2';
 
-    // Ensure we always have content
-    const displayRecommendations =
-      recommendations && recommendations.length > 0
-        ? recommendations
-        : ['⚠️ [No recommendations] Analysis could not determine specific areas for improvement'];
-
-    debugLog('ui', 'Creating improvements list with:', displayRecommendations);
+    debugLog('ui', 'Creating improvements list with:', recommendations);
 
     // Add each recommendation as a list item with innerHTML to preserve emojis
-    displayRecommendations.forEach(rec => {
+    recommendations.forEach(rec => {
       debugLog('ui', 'Adding recommendation:', rec);
       const item = document.createElement('li');
       item.className = 'text-gray-800';
@@ -141,6 +209,56 @@ export class InsightsPanel {
     improvementsColumn.appendChild(improvementsCard);
 
     return improvementsColumn;
+  }
+
+  /**
+   * Create a positive feedback column for high-scoring repositories with no issues
+   * @returns Positive feedback column element
+   */
+  private createPositiveFeedbackColumn(): HTMLElement {
+    // Create column container with Tailwind classes
+    const column = document.createElement('div');
+    column.className = 'flex-1';
+
+    // Create card container with Tailwind classes
+    const card = document.createElement('div');
+    card.className = 'bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden';
+
+    // Create card header with icon using Tailwind classes
+    const header = document.createElement('div');
+    header.className = 'flex items-center px-4 py-3 bg-blue-50 border-b border-gray-200';
+
+    // Add icon with proper color
+    const iconSpan = document.createElement('span');
+    iconSpan.className = 'text-blue-600 mr-2';
+    iconSpan.innerHTML = IconHelper.getSvgIconString('check');
+
+    // Add header text
+    const headerText = document.createElement('span');
+    headerText.className = 'font-medium text-black';
+    headerText.textContent = 'Excellent Repository';
+
+    // Assemble header
+    header.appendChild(iconSpan);
+    header.appendChild(headerText);
+    card.appendChild(header);
+
+    // Create card body with Tailwind classes
+    const body = document.createElement('div');
+    body.className = 'px-4 py-3 text-black';
+
+    // Create and populate the paragraph
+    const content = document.createElement('p');
+    content.className = 'text-gray-800';
+    content.innerHTML =
+      "🏆 This repository is well-maintained and follows best practices. We didn't find any specific areas that need improvement. Keep up the great work!";
+
+    // Assemble the card
+    body.appendChild(content);
+    card.appendChild(body);
+    column.appendChild(card);
+
+    return column;
   }
 
   /**
@@ -181,15 +299,22 @@ export class InsightsPanel {
     const strengthsBody = document.createElement('div');
     strengthsBody.className = 'px-4 py-3 text-black';
 
+    // Create description about strengths
+    const description = document.createElement('p');
+    description.className = 'mb-3 text-gray-700';
+    description.textContent =
+      "These positive aspects contribute to your repository's quality score:";
+    strengthsBody.appendChild(description);
+
     // Create and populate the list with Tailwind classes
     const strengthsList = document.createElement('ul');
     strengthsList.className = 'list-disc pl-5 space-y-2';
 
     // Ensure we always have content
     const displayStrengths =
-      strengths && strengths.length > 0
+      strengths.length > 0
         ? strengths
-        : ['⚠️ [No strengths identified] Analysis could not determine specific strengths'];
+        : ['⚠️ No notable strengths were identified during analysis'];
 
     debugLog('ui', 'Creating strengths list with:', displayStrengths);
 
@@ -211,33 +336,85 @@ export class InsightsPanel {
   }
 
   /**
-   * Generate default recommendations when data is missing
-   * @returns Array of default recommendation messages
+   * Generate data-driven insights based on repository metrics
+   * @param data Repository analysis data
+   * @returns Array of insight messages
    */
-  private generateDefaultRecommendations(): string[] {
-    debugLog('ui', 'Generating default recommendations');
+  private generateDataDrivenInsights(data: AnalysisResult): string[] {
+    const insights: string[] = [];
+    const scoreDetails = data.categories;
 
-    // Instead of generating potentially misleading defaults,
-    // provide a message that indicates these are placeholders
-    return [
-      '⚠️ [Placeholder] Consider enhancing documentation for better user experience',
-      '⚠️ [Placeholder] Improve project sustainability with more community engagement',
-    ];
-  }
+    // Find the lowest scoring category
+    const sortedCategories = [...scoreDetails].sort(
+      (a, b) => parseFloat(a.score) - parseFloat(b.score)
+    );
 
-  /**
-   * Generate default strengths when data is missing
-   * @returns Array of default strength messages
-   */
-  private generateDefaultStrengths(): string[] {
-    debugLog('ui', 'Generating default strengths');
+    // Add insight for the lowest category
+    if (sortedCategories.length > 0) {
+      const lowestCategory = sortedCategories[0];
+      const score = parseFloat(lowestCategory.score);
 
-    // Instead of generating potentially misleading defaults,
-    // provide a message that indicates these are placeholders
-    return [
-      '⚠️ [Placeholder] This repository has basic GitHub features set up',
-      '⚠️ [Placeholder] Documentation exists to some degree',
-      '⚠️ [Placeholder] Repository structure follows standard practices',
-    ];
+      if (score < 50) {
+        insights.push(
+          `📊 The <strong>${lowestCategory.name}</strong> score (${lowestCategory.score}) is your lowest metric and significantly affects your overall rating`
+        );
+      } else if (score < 70) {
+        insights.push(
+          `📊 Improving your <strong>${lowestCategory.name}</strong> score could have the biggest impact on your overall rating`
+        );
+      }
+    }
+
+    // Check specific metrics for improvement suggestions
+    if (!data.hasWebsite) {
+      insights.push(
+        '🌐 Consider adding a project website or GitHub Pages to enhance repository visibility'
+      );
+    }
+
+    if (data.metrics.contributors === 1) {
+      insights.push(
+        '👥 This appears to be a single-contributor project - consider welcoming additional collaborators to improve sustainability'
+      );
+    }
+
+    // Check commit patterns
+    if (data.metrics.daysSinceLastUpdate > 30 && data.metrics.daysSinceLastUpdate < 90) {
+      insights.push(
+        '⏱️ Repository activity has slowed recently - regular updates help maintain user confidence'
+      );
+    }
+
+    // Check documentation
+    if (data.hasReadme && data.readmeLength < 500) {
+      insights.push(
+        '📝 The README file is relatively short - consider expanding it with more detailed information'
+      );
+    }
+
+    // Check for releases
+    if (data.metrics.releaseCount === 0) {
+      insights.push(
+        '🏷️ No formal releases found - creating tagged releases helps users track versions'
+      );
+    }
+
+    // Issues and PRs
+    if (
+      data.metrics.openIssues > 5 &&
+      data.metrics.issueResolutionRate !== 'N/A' &&
+      parseFloat(data.metrics.issueResolutionRate) < 70
+    ) {
+      insights.push('🔍 Consider addressing open issues to improve your issue resolution rate');
+    }
+
+    // If we couldn't generate any insights, add a general one
+    if (insights.length === 0) {
+      insights.push(
+        "📈 This repository is doing well overall, but there's always room for incremental improvements"
+      );
+    }
+
+    return insights;
   }
 }

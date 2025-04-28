@@ -230,11 +230,7 @@ export class HealthIndicators {
       ? `Has README${data.readmeLength > 300 ? ' (comprehensive)' : ''}`
       : 'No README';
 
-    const extendedDocs = data.hasWebsite
-      ? 'Has Website'
-      : data.hasWiki
-        ? 'Has Wiki'
-        : 'No Wiki/Website';
+    const extendedDocs = data.hasWebsite ? 'Has Website' : 'No Wiki/Website';
 
     return `${readmeStatus}, ${extendedDocs}`;
   }
