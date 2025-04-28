@@ -1,6 +1,5 @@
 // tests/unit/ui/components/ToggleButton.test.ts
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { fakeBrowser } from 'wxt/testing';
 import { ContentScriptContext } from 'wxt/utils/content-script-context';
 
 // Mock elements that we'll use for testing
@@ -187,7 +186,7 @@ describe('ToggleButton', () => {
 
   it('should mount button to the DOM', async () => {
     // Set UI property
-    // @ts-ignore - accessing private property for testing
+    // @ts-expect-error - accessing private property for testing
     toggleButton.ui = mockShadowUi;
 
     // Mount the button
@@ -199,7 +198,7 @@ describe('ToggleButton', () => {
 
   it('should remove button from the DOM', () => {
     // Set UI property
-    // @ts-ignore - accessing private property for testing
+    // @ts-expect-error - accessing private property for testing
     toggleButton.ui = mockShadowUi;
 
     // Remove the button
@@ -209,13 +208,13 @@ describe('ToggleButton', () => {
     expect(mockShadowUi.remove).toHaveBeenCalled();
 
     // Verify UI reference was cleared
-    // @ts-ignore - accessing private property for testing
+    // @ts-expect-error - accessing private property for testing
     expect(toggleButton.ui).toBeNull();
   });
 
   it('should set active state correctly', () => {
     // Set button property
-    // @ts-ignore - accessing private property for testing
+    // @ts-expect-error - accessing private property for testing
     toggleButton.button = mockButton;
 
     // Set to active
@@ -235,7 +234,7 @@ describe('ToggleButton', () => {
 
   it('should call toggle callback when clicked', () => {
     // Access the private method
-    // @ts-ignore - accessing private method for testing
+    // @ts-expect-error - accessing private method for testing
     const handleClick = toggleButton.handleClick.bind(toggleButton);
 
     // Call the handler
@@ -247,13 +246,13 @@ describe('ToggleButton', () => {
 
   it('should show and hide tooltip', () => {
     // Set tooltip property
-    // @ts-ignore - accessing private property for testing
+    // @ts-expect-error - accessing private property for testing
     toggleButton.tooltip = mockTooltip;
 
     // Get the private methods
-    // @ts-ignore - accessing private method for testing
+    // @ts-expect-error - accessing private method for testing
     const showTooltip = toggleButton.showTooltip.bind(toggleButton);
-    // @ts-ignore - accessing private method for testing
+    // @ts-expect-error - accessing private method for testing
     const hideTooltip = toggleButton.hideTooltip.bind(toggleButton);
 
     // Test show tooltip

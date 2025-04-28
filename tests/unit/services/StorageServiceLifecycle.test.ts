@@ -230,9 +230,6 @@ describe('StorageService Lifecycle Management', () => {
 
   describe('Error Handling', () => {
     it('should handle storage errors gracefully', async () => {
-      // Mock getValue to throw an error
-      const mockGetValue = vi.fn().mockRejectedValue(new Error('Storage error'));
-
       // Replace the getValue method temporarily
       const originalGetValue = StorageService.getState;
       StorageService.getState = vi.fn().mockImplementationOnce(async () => {

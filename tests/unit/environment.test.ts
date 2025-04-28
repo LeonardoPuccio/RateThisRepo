@@ -1,4 +1,5 @@
 // tests/unit/environment.test.ts
+/* eslint-disable no-console */
 import { beforeAll, describe, expect, test } from 'vitest';
 
 describe('Environment Sanity Checks', () => {

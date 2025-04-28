@@ -37,9 +37,9 @@ describe('StateManager', () => {
     };
   };
 
-  // Mock storage watch callbacks
-  let stateWatchCallback: Function;
-  let optionsWatchCallback: Function;
+  // Mock storage watch callbacks with proper typing
+  let stateWatchCallback: (state: Record<string, unknown>) => void;
+  let optionsWatchCallback: (options: Record<string, unknown>) => void;
 
   beforeEach(() => {
     // Reset mocks and browser API
