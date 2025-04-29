@@ -1,5 +1,6 @@
 import { AnalysisResult } from '@/interfaces/analysis.interface';
 import { IconHelper } from '@/ui/helpers/IconHelper';
+import { combineClasses, COMPONENT_CLASSES } from '@/ui/styles/button-animations';
 
 /**
  * Component for displaying health indicators
@@ -111,10 +112,21 @@ export class HealthIndicators {
       // Create indicator container with Tailwind classes
       const indicatorElement = document.createElement('div');
 
-      // Set base classes
-      indicatorElement.className = `flex items-center p-3 rounded-md mb-3 ${
-        indicator.status ? 'bg-[#34d39933] border-green-400' : 'bg-[#ef44441a] border-red-500'
-      } border-l-4 border-solid text-gray-900`;
+      // Set base classes using combineClasses utility
+      indicatorElement.className = combineClasses(
+        [
+          'flex',
+          'items-center',
+          'p-3',
+          'rounded-md',
+          'mb-3',
+          'border-l-4',
+          'border-solid',
+          'text-gray-900',
+          indicator.status ? 'bg-[#34d39933] border-green-400' : 'bg-[#ef44441a] border-red-500',
+        ],
+        []
+      );
 
       // Add icon
       const iconSpan = document.createElement('span');
@@ -145,9 +157,9 @@ export class HealthIndicators {
       let nameElement;
 
       if (indicator.tooltip) {
-        // Create a tooltip container using Tailwind classes
+        // Create a tooltip container with group for CSS-only hover effects
         const tooltipContainer = document.createElement('div');
-        tooltipContainer.className = 'relative inline-block group'; // 'group' for hover effects
+        tooltipContainer.className = 'relative inline-block group';
 
         const nameSpan = document.createElement('span');
         nameSpan.className = 'font-semibold text-gray-900';
@@ -155,10 +167,25 @@ export class HealthIndicators {
 
         tooltipContainer.appendChild(nameSpan);
 
-        // Create tooltip with Tailwind classes
+        // Create tooltip using our standardized tooltip class and CSS-only hover approach
         const tooltipText = document.createElement('div');
-        tooltipText.className =
-          'invisible opacity-0 group-hover:visible group-hover:opacity-100 transition-opacity duration-200 absolute bottom-full left-0 w-64 p-2 mb-1 rounded z-10 bg-gray-800 text-white text-sm';
+        // Combine Tailwind positioning classes with our custom tooltip class
+        tooltipText.className = combineClasses(
+          [
+            'absolute',
+            'bottom-full',
+            'left-0',
+            'w-64',
+            'p-2',
+            'mb-1',
+            'rounded',
+            'z-10',
+            'bg-gray-800',
+            'text-white',
+            'text-sm',
+          ],
+          [COMPONENT_CLASSES.TOOLTIP] // Use our standardized tooltip class
+        );
         tooltipText.innerHTML = indicator.tooltip;
 
         // Add a tooltip arrow

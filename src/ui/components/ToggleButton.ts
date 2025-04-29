@@ -1,5 +1,5 @@
 import { ToggleButtonMountData } from '@/ui/interfaces/ui-interfaces';
-import { BUTTON_CLASSES } from '@/ui/styles/button-animations';
+import { BUTTON_CLASSES, combineClasses } from '@/ui/styles/button-animations';
 import { debugLog, errorLog, logUIState } from '@/utils/debug';
 import { ContentScriptContext } from 'wxt/utils/content-script-context';
 import {
@@ -43,59 +43,65 @@ export class ToggleButton {
         onMount: (container, shadow, shadowHost) => {
           debugLog('ui', 'Mounting ToggleButton UI in shadow DOM');
 
-          // Add component class to the container for proper styling in shadow DOM
+          // Add component base class to the container for proper styling in shadow DOM
           container.classList.add(BUTTON_CLASSES.COMPONENT);
 
-          // Apply fixed positioning to the shadow host element
+          // Note: We use direct styles for position-critical elements to ensure
+          // consistent positioning across browsers and to avoid CSS cascade issues
           shadowHost.style.position = 'fixed';
           shadowHost.style.bottom = '0';
           shadowHost.style.right = '0';
-          shadowHost.style.width = '100px'; // Just enough to cover the button area
+          shadowHost.style.width = '100px';
           shadowHost.style.height = '100px';
           shadowHost.style.zIndex = '9999';
           shadowHost.style.overflow = 'visible';
-          shadowHost.style.pointerEvents = 'none'; // Let events pass through by default
+          shadowHost.style.pointerEvents = 'none';
 
-          // Create button container with padding for animation expansion
+          // Create button container with group class for CSS-only tooltip functionality
           const buttonContainer = document.createElement('div');
-          buttonContainer.className = `relative ${BUTTON_CLASSES.CONTAINER}`;
-          buttonContainer.style.pointerEvents = 'auto'; // Make sure button captures events
+          buttonContainer.className = combineClasses(
+            ['group p-[10px] pointer-events-auto'],
+            [BUTTON_CLASSES.CONTAINER]
+          );
+
+          // Direct positioning is used for exact placement
           buttonContainer.style.position = 'absolute';
           buttonContainer.style.bottom = '20px';
           buttonContainer.style.right = '20px';
-          buttonContainer.style.padding = '10px'; // Accommodate animation expansion
 
-          // Create tooltip with our standardized classes
+          // Tooltip uses group-hover pattern for CSS-only hover effects
           this.tooltip = document.createElement('div');
-          this.tooltip.className = BUTTON_CLASSES.TOOLTIP;
+          this.tooltip.className = combineClasses(
+            [
+              'absolute -top-10 right-0 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-opacity duration-200',
+            ],
+            [BUTTON_CLASSES.TOOLTIP]
+          );
           this.tooltip.textContent = 'Analyze Repository';
-          this.tooltip.style.top = '-40px'; // Position tooltip above button
-          this.tooltip.style.right = '0';
 
-          // Create the button element using Tailwind classes + our custom classes
+          // Button styling uses a combination of Tailwind and custom animation classes
           this.button = document.createElement('button');
-          this.button.className = [
+          this.button.className = combineClasses(
             // Tailwind utility classes
-            'w-12 h-12 text-xl rounded-full border-none cursor-pointer',
-            'flex items-center justify-center text-white',
-            'transition-all duration-200',
-            // Our custom animation/state class
-            BUTTON_CLASSES.DEFAULT,
-          ].join(' ');
+            [
+              'w-12 h-12 text-xl rounded-full border-none cursor-pointer',
+              'flex items-center justify-center text-white',
+              'transition-all duration-200',
+            ],
+            // Custom animation/state class
+            [BUTTON_CLASSES.DEFAULT]
+          );
 
           this.button.innerHTML = '📊';
           this.button.setAttribute('aria-label', 'Analyze Repository');
 
-          // Add event listeners
+          // Only add click handler - tooltips use CSS hover instead of JS events
           this.button.addEventListener('click', this.handleClick.bind(this));
-          this.button.addEventListener('mouseover', this.showTooltip.bind(this));
-          this.button.addEventListener('mouseout', this.hideTooltip.bind(this));
 
-          // Critical: Add wheel event handler to the button container
+          // Prevent wheel events to avoid scrolling the page when hovering over the button
           buttonContainer.addEventListener(
             'wheel',
             e => {
-              // Always stop propagation and prevent default for button area
               e.stopPropagation();
               e.preventDefault();
             },
@@ -166,7 +172,7 @@ export class ToggleButton {
     if (this.button) {
       debugLog('ui', `Setting ToggleButton active state to: ${active}`);
 
-      // Make sure to toggle classes correctly for animation using our constants
+      // Toggle classes for animation states
       if (active) {
         this.button.classList.remove(BUTTON_CLASSES.DEFAULT);
         this.button.classList.add(BUTTON_CLASSES.ACTIVE);
@@ -187,24 +193,6 @@ export class ToggleButton {
     debugLog('ui', 'ToggleButton clicked');
     if (this.toggleCallback) {
       this.toggleCallback();
-    }
-  }
-
-  /**
-   * Hide the tooltip
-   */
-  private hideTooltip(): void {
-    if (this.tooltip) {
-      this.tooltip.classList.remove(BUTTON_CLASSES.TOOLTIP_VISIBLE);
-    }
-  }
-
-  /**
-   * Show the tooltip
-   */
-  private showTooltip(): void {
-    if (this.tooltip) {
-      this.tooltip.classList.add(BUTTON_CLASSES.TOOLTIP_VISIBLE);
     }
   }
 }
