@@ -7,9 +7,22 @@
 
 import { AnalysisResult } from '@/interfaces/analysis.interface';
 import { StateEventHandler, StateEventMap, StateEventType } from '@/interfaces/events.interface';
+import { MessageService } from '@/services/MessageService';
 import { debugLog, errorLog } from '@/utils/debug';
 
 import { AppState, StorageService } from './StorageService';
+
+/**
+ * Batched update options for setState
+ */
+interface BatchOptions {
+  /** Enable batch mode to reduce storage operations */
+  batch?: boolean;
+  /** Skip triggering events */
+  skipEvents?: boolean;
+  /** Skip notification to other contexts */
+  skipNotification?: boolean;
+}
 
 /**
  * StateManager provides a centralized state store and event system
@@ -18,7 +31,10 @@ import { AppState, StorageService } from './StorageService';
  */
 export class StateManager {
   private static instance: StateManager;
+  private batchedUpdates: null | Partial<AppState> = null;
   private eventListeners: Map<StateEventType, Set<StateEventHandler<unknown>>>;
+  private isBatching: boolean = false;
+  private messageService: MessageService;
   private state: AppState;
   private unwatchOptionsCallback: (() => void) | null = null;
   private unwatchStateCallback: (() => void) | null = null;
@@ -35,6 +51,7 @@ export class StateManager {
     };
 
     this.eventListeners = new Map();
+    this.messageService = MessageService.getInstance();
 
     // Set up storage watching
     this.setupStorageWatching();
@@ -48,6 +65,21 @@ export class StateManager {
       StateManager.instance = new StateManager();
     }
     return StateManager.instance;
+  }
+
+  /**
+   * Begin a batch update
+   * This allows multiple state changes to be combined into a single storage operation
+   */
+  public beginBatch(): void {
+    if (this.isBatching) {
+      debugLog('state', 'Already in batch mode, ignoring beginBatch call');
+      return;
+    }
+
+    this.isBatching = true;
+    this.batchedUpdates = {};
+    debugLog('state', 'Batch update mode started');
   }
 
   /**
@@ -66,9 +98,41 @@ export class StateManager {
   }
 
   /**
+   * Commit a batch update to storage
+   */
+  public async commitBatch(): Promise<void> {
+    if (!this.isBatching || !this.batchedUpdates) {
+      debugLog('state', 'No batch in progress, ignoring commitBatch call');
+      return;
+    }
+
+    try {
+      const updates = this.batchedUpdates;
+      this.isBatching = false;
+      this.batchedUpdates = null;
+
+      debugLog('state', 'Committing batch update:', updates);
+
+      // Apply updates to local state (storage watcher will handle events)
+      await this.applyStateUpdates(updates);
+    } catch (error) {
+      this.isBatching = false;
+      this.batchedUpdates = null;
+      errorLog('state', 'Error committing batch update:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Clean up resources
    */
   public destroy(): void {
+    // Clean up any in-progress batch
+    if (this.isBatching) {
+      this.isBatching = false;
+      this.batchedUpdates = null;
+    }
+
     if (this.unwatchStateCallback) {
       this.unwatchStateCallback();
       this.unwatchStateCallback = null;
@@ -107,6 +171,10 @@ export class StateManager {
    * Get the current state
    */
   public getState(): AppState {
+    // If batching, combine with any pending updates
+    if (this.isBatching && this.batchedUpdates) {
+      return { ...this.state, ...this.batchedUpdates };
+    }
     return { ...this.state };
   }
 
@@ -173,14 +241,40 @@ export class StateManager {
   }
 
   /**
+   * Reset batch mode (discard any pending updates)
+   */
+  public resetBatch(): void {
+    if (this.isBatching) {
+      this.isBatching = false;
+      this.batchedUpdates = null;
+      debugLog('state', 'Batch update mode reset, updates discarded');
+    }
+  }
+
+  /**
    * Save analysis result
    */
   public async saveAnalysisResult(result: AnalysisResult): Promise<void> {
+    if (this.isBatching) {
+      this.batchedUpdates = {
+        ...this.batchedUpdates,
+        hasAnalysisData: true,
+        repoAnalysis: result,
+      };
+      return;
+    }
+
     try {
       await StorageService.saveAnalysisResult(result);
       debugLog('state', 'Analysis result saved');
-      // Note: We don't update the local state directly because
-      // the storage watcher will do that and emit the event
+
+      // Notify other contexts
+      try {
+        await this.messageService.sendAnalysisComplete(result);
+      } catch (error) {
+        // Don't fail the operation if notification fails
+        errorLog('state', 'Error notifying contexts of analysis completion:', error);
+      }
     } catch (error) {
       errorLog('state', 'Error saving analysis result:', error);
       throw error;
@@ -191,14 +285,92 @@ export class StateManager {
    * Update panel visibility
    */
   public async setPanelVisibility(isVisible: boolean): Promise<void> {
+    if (this.isBatching) {
+      this.batchedUpdates = { ...this.batchedUpdates, isPanelVisible: isVisible };
+      return;
+    }
+
     try {
       await StorageService.updateUiState(isVisible);
       debugLog('state', `Panel visibility set to: ${isVisible}`);
-      // Note: We don't update the local state directly because
-      // the storage watcher will do that and emit the event
+
+      // Notify other contexts about the visibility change
+      try {
+        await this.messageService.updateState({ isPanelVisible: isVisible });
+      } catch (error) {
+        // Don't fail the operation if notification fails
+        errorLog('state', 'Error notifying contexts of panel visibility change:', error);
+      }
     } catch (error) {
       errorLog('state', 'Error updating panel visibility:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Set multiple state properties at once
+   */
+  public async setState(updates: Partial<AppState>, options: BatchOptions = {}): Promise<void> {
+    // If in batch mode, add to batched updates
+    if (this.isBatching && !options.batch) {
+      this.batchedUpdates = { ...this.batchedUpdates, ...updates };
+      return;
+    }
+
+    try {
+      await this.applyStateUpdates(updates, options);
+    } catch (error) {
+      errorLog('state', 'Error updating state:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Apply state updates and handle events/notifications
+   */
+  private async applyStateUpdates(
+    updates: Partial<AppState>,
+    options: BatchOptions = {}
+  ): Promise<void> {
+    const oldState = { ...this.state };
+
+    // Apply updates directly to storage
+    if ('repoAnalysis' in updates && updates.repoAnalysis) {
+      await StorageService.saveAnalysisResult(updates.repoAnalysis);
+    }
+
+    if ('isPanelVisible' in updates && updates.isPanelVisible !== undefined) {
+      await StorageService.updateUiState(updates.isPanelVisible);
+    }
+
+    // Apply updates to local state
+    this.state = { ...this.state, ...updates };
+
+    // Notify other contexts if needed
+    if (!options.skipNotification) {
+      try {
+        await this.messageService.updateState(updates);
+      } catch (error) {
+        errorLog('state', 'Error notifying contexts of state update:', error);
+      }
+    }
+
+    // Emit events if needed
+    if (!options.skipEvents) {
+      // Handle visibility change event
+      if ('isPanelVisible' in updates && oldState.isPanelVisible !== updates.isPanelVisible) {
+        this.emit('panel:visibility-changed', updates.isPanelVisible);
+      }
+
+      // Handle analysis completed event
+      if (
+        'hasAnalysisData' in updates &&
+        'repoAnalysis' in updates &&
+        updates.hasAnalysisData &&
+        updates.repoAnalysis
+      ) {
+        this.emit('analysis:completed', updates.repoAnalysis);
+      }
     }
   }
 
@@ -232,7 +404,8 @@ export class StateManager {
 
     // Watch for options changes
     this.unwatchOptionsCallback = StorageService.watchOptions(newOptions => {
-      this.emit('options:changed', newOptions as Record<string, unknown>);
+      // Cast to Record<string, unknown> with a proper type assertion to avoid TypeScript error
+      this.emit('options:changed', newOptions as unknown as Record<string, unknown>);
     });
   }
 }
