@@ -1,5 +1,6 @@
 import { ScoreCategory } from '@/interfaces/analysis.interface';
 import { IconHelper } from '@/ui/helpers/IconHelper';
+import { combineClasses } from '@/ui/styles/button-animations';
 import { debugLog } from '@/utils/debug';
 
 /**
@@ -75,23 +76,32 @@ export class CategoryScoresPanel {
     // Add the name-score container to the row
     scoreRow.appendChild(nameScoreContainer);
 
-    // Create score bar with Tailwind classes and our custom bar class
+    // Create score bar with Tailwind classes
     const barContainer = document.createElement('div');
     barContainer.className = 'w-full h-4 bg-gray-200 rounded overflow-hidden mb-2';
 
     const percent = (parseFloat(category.score) / 20) * 100;
 
+    // Create the bar with appropriate status color using Tailwind classes
     const bar = document.createElement('div');
-    // Use our rtr-bar class with the appropriate status
-    let statusClass = 'error';
+
+    // Determine the appropriate background color class based on score
+    let bgColorClass = 'bg-red-500'; // Default for low scores
     if (percent >= 80) {
-      statusClass = 'success';
+      bgColorClass = 'bg-green-500';
     } else if (percent >= 60) {
-      statusClass = 'warning';
+      bgColorClass = 'bg-yellow-500';
     }
 
-    bar.className = `rtr-bar ${statusClass}`;
+    // Set the classes using Tailwind utility classes instead of custom classes
+    bar.className = combineClasses(
+      [bgColorClass, 'h-full', 'rounded', 'transition-all', 'duration-300'],
+      [] // No custom classes needed
+    );
+
+    // Set width using style property - this can't be avoided with Tailwind
     bar.style.width = `${percent}%`;
+
     barContainer.appendChild(bar);
     scoreRow.appendChild(barContainer);
 

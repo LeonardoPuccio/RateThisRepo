@@ -43,6 +43,8 @@ export class AnalysisPanel {
 
   /**
    * Hide the panel
+   * Note: Uses direct style manipulation for display property as it's more reliable
+   * than class toggling for this property
    */
   public hide(): void {
     if (this.ui?.shadowHost) {
@@ -67,7 +69,8 @@ export class AnalysisPanel {
           // Add component base class
           container.classList.add(BUTTON_CLASSES.COMPONENT);
 
-          // Apply fixed positioning to the host element
+          // Note: We use direct styles for position-critical elements to ensure
+          // consistent positioning and dimensions across browsers
           shadowHost.style.position = 'fixed';
           shadowHost.style.top = '0';
           shadowHost.style.left = '0';
@@ -77,7 +80,7 @@ export class AnalysisPanel {
           shadowHost.style.zIndex = '10000';
           shadowHost.style.overflow = 'visible';
 
-          // Create an internal overlay inside the shadow DOM (replacing the global one)
+          // Internal overlay for shadow DOM encapsulation - creates a layer for panel positioning
           this.internalOverlay = document.createElement('div');
           this.internalOverlay.style.position = 'absolute';
           this.internalOverlay.style.top = '0';
@@ -86,19 +89,19 @@ export class AnalysisPanel {
           this.internalOverlay.style.height = '100%';
           this.internalOverlay.style.pointerEvents = 'none'; // Let events pass through by default
 
-          // Create the panel container (will be positioned in the overlay)
+          // Panel container with visual styling via Tailwind
           const panelContainer = document.createElement('div');
-          panelContainer.className =
-            'bg-white rounded-lg shadow-lg overflow-hidden text-gray-800 font-sans';
-          panelContainer.style.pointerEvents = 'auto'; // Make the panel capture events
+          panelContainer.className = 'bg-white rounded-lg shadow-lg text-gray-800 font-sans';
+
+          // Direct styles for exact positioning and sizing
           panelContainer.style.position = 'absolute';
           panelContainer.style.top = '20px';
           panelContainer.style.right = '20px';
           panelContainer.style.width = 'auto';
           panelContainer.style.maxWidth = '800px';
           panelContainer.style.maxHeight = '90vh';
-          panelContainer.style.overflow = 'hidden'; // Prevent horizontal overflow
-          panelContainer.style.overflowX = 'hidden'; // Prevent horizontal overflow
+          panelContainer.style.overflow = 'hidden';
+          panelContainer.style.pointerEvents = 'auto'; // Make sure panel captures events
 
           // Create panel elements
           this.createPanelElements(panelContainer);
@@ -115,7 +118,8 @@ export class AnalysisPanel {
           // Add ID for legacy compatibility
           container.id = 'repo-evaluator-panel';
 
-          // Critical: Add wheel event handler to the panel
+          // Handle wheel events to prevent page scrolling when interacting with the panel
+          // while allowing scrolling within the content container
           panelContainer.addEventListener(
             'wheel',
             e => {
@@ -254,6 +258,8 @@ export class AnalysisPanel {
 
   /**
    * Show the panel
+   * Note: Uses direct style manipulation for display property as it's more reliable
+   * than class toggling for this property
    */
   public show(): void {
     if (this.ui?.shadowHost) {
@@ -320,13 +326,13 @@ export class AnalysisPanel {
     // Add header to panel
     uiContainer.appendChild(this.headerBar);
 
-    // Create content container with separate scrolling using Tailwind classes
+    // Create content container with separate scrolling
     this.contentContainer = document.createElement('div');
     this.contentContainer.className = 'w-full bg-white p-5 overflow-y-auto box-border';
-    this.contentContainer.style.overflowX = 'hidden'; // Prevent horizontal scrolling
-    this.contentContainer.style.pointerEvents = 'auto'; // Ensure it can capture events
 
-    // Apply max-height using inline style since Tailwind doesn't have exact values
+    // Direct styles for precise layout calculations and pointer behavior
+    this.contentContainer.style.overflowX = 'hidden';
+    this.contentContainer.style.pointerEvents = 'auto';
     this.contentContainer.style.height = 'calc(100% - 48px)';
     this.contentContainer.style.maxHeight = 'calc(90vh - 48px)';
 

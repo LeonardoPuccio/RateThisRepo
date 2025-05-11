@@ -1,4 +1,5 @@
 import { IconHelper } from '@/ui/helpers/IconHelper';
+import { combineClasses } from '@/ui/styles/button-animations';
 
 /**
  * Reusable collapsible card component
@@ -35,7 +36,19 @@ export class CollapsibleCard {
 
     // Create header with Tailwind classes
     this.header = document.createElement('div');
-    this.header.className = `flex items-center justify-between py-3 px-4 bg-gray-50 cursor-pointer`;
+    this.header.className = combineClasses(
+      [
+        'flex',
+        'items-center',
+        'justify-between',
+        'py-3',
+        'px-4',
+        'bg-gray-50',
+        'cursor-pointer',
+        ...(this.isCollapsed ? [] : ['border-b', 'border-gray-200']),
+      ],
+      []
+    );
 
     // Create title container with icon - store reference for toggling
     this.titleContainer = document.createElement('div');
@@ -74,14 +87,10 @@ export class CollapsibleCard {
 
     // Create content body with Tailwind classes
     this.body = document.createElement('div');
-    this.body.className = 'py-3 px-4 bg-white';
-
-    // Set initial state
-    if (this.isCollapsed) {
-      this.body.style.display = 'none';
-    } else {
-      this.header.classList.add('border-b', 'border-gray-200');
-    }
+    this.body.className = combineClasses(
+      ['py-3', 'px-4', 'bg-white', ...(this.isCollapsed ? ['hidden'] : [])],
+      []
+    );
 
     // Append content to body
     this.body.appendChild(content);
@@ -126,16 +135,18 @@ export class CollapsibleCard {
   public toggle(): void {
     this.isCollapsed = !this.isCollapsed;
 
-    // Update content visibility
+    // Update content visibility using Tailwind classes instead of style.display
     if (this.isCollapsed) {
-      this.body.style.display = 'none';
+      this.body.classList.add('hidden');
+      this.body.classList.remove('block');
       this.header.classList.remove('border-b', 'border-gray-200');
     } else {
-      this.body.style.display = 'block';
+      this.body.classList.remove('hidden');
+      this.body.classList.add('block');
       this.header.classList.add('border-b', 'border-gray-200');
     }
 
-    // Update ONLY the chevron - not modifying the title container!
+    // Update the chevron
     this.chevron.innerHTML = this.isCollapsed
       ? `<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path fill-rule="evenodd" d="M4.22 6.22a.75.75 0 01.53-.22h6.5a.75.75 0 01.53.22l.5.5a.75.75 0 010 1.06l-3.25 3.25a.75.75 0 01-1.06 0L4.72 7.78a.75.75 0 010-1.06l.5-.5z"></path></svg>`
       : `<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path fill-rule="evenodd" d="M7.22 11.22a.75.75 0 001.06 0l3.25-3.25a.75.75 0 000-1.06l-.5-.5a.75.75 0 00-1.06 0L7 9.38 4.03 6.41a.75.75 0 00-1.06 0l-.5.5a.75.75 0 000 1.06l3.25 3.25z"></path></svg>`;
