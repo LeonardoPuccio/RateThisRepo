@@ -31,7 +31,7 @@ export default defineConfig({
     name: 'RateThisRepo',
     options_page: 'options.html',
     permissions: ['storage', 'activeTab'],
-    version: '0.3.0',
+    version: '0.3.1',
     web_accessible_resources: [
       {
         matches: ['<all_urls>'],

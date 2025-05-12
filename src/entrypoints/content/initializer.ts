@@ -1,7 +1,8 @@
 import { AnalysisResult } from '@/interfaces/analysis.interface';
+import { StateEventHandler } from '@/interfaces/events.interface';
 import { StateManager } from '@/services/StateManager';
 import { StorageService } from '@/services/StorageService';
-import { debugLog, errorLog } from '@/utils/config';
+import { debugLog, errorLog } from '@/utils/debug';
 import { type ContentScriptContext } from 'wxt/utils/content-script-context';
 
 import { buttonManager } from './button-manager';
@@ -65,11 +66,14 @@ export class Initializer {
       // Initialize state manager
       await this.stateManager.initialize();
 
-      // Register message handlers
-      messageHandler.registerMessageListener();
+      // Register message handlers - using new approach
+      messageHandler.registerMessageHandlers();
 
       // Setup event listeners
       this.setupEventListeners();
+
+      // Load options
+      await messageHandler.loadOptions();
 
       // Check if we're on a GitHub repo page and initialize if needed
       await this.initializeOnGitHub();
@@ -170,7 +174,9 @@ export class Initializer {
    */
   private setupEventListeners(): void {
     // Panel visibility changed
-    this.stateManager.on('panel:visibility-changed', (isVisible: boolean) => {
+    const panelVisibilityHandler: StateEventHandler<boolean> = isVisible => {
+      if (isVisible === undefined) return;
+
       debugLog('state', `Panel visibility changed: ${isVisible}`);
 
       if (isVisible) {
@@ -184,10 +190,13 @@ export class Initializer {
 
       // Update toggle button
       buttonManager.setButtonActive(isVisible);
-    });
+    };
+    this.stateManager.on('panel:visibility-changed', panelVisibilityHandler);
 
     // Analysis completed
-    this.stateManager.on('analysis:completed', (data: AnalysisResult) => {
+    const analysisCompletedHandler: StateEventHandler<AnalysisResult> = data => {
+      if (!data) return;
+
       debugLog('state', 'Analysis completed, data received');
 
       // If panel should be visible, display it
@@ -195,13 +204,18 @@ export class Initializer {
       if (state.isPanelVisible) {
         panelManager.displayAnalysisPanel(data);
       }
-    });
+    };
+    this.stateManager.on('analysis:completed', analysisCompletedHandler);
 
     // Options changed
-    this.stateManager.on('options:changed', (options: { showFloatingButton: boolean }) => {
+    const optionsChangedHandler: StateEventHandler<Record<string, unknown>> = options => {
+      if (!options) return;
+
       debugLog('state', 'Options changed:', options);
-      buttonManager.initializeButton(options.showFloatingButton);
-    });
+      const showFloatingButton = options.showFloatingButton as boolean;
+      buttonManager.initializeButton(showFloatingButton ?? true);
+    };
+    this.stateManager.on('options:changed', optionsChangedHandler);
   }
 
   /**

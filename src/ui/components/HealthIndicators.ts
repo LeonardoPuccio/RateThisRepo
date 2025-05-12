@@ -1,30 +1,31 @@
 import { AnalysisResult } from '@/interfaces/analysis.interface';
 import { IconHelper } from '@/ui/helpers/IconHelper';
+import { combineClasses, COMPONENT_CLASSES } from '@/ui/styles/button-animations';
 
 /**
  * Component for displaying health indicators
  */
 export class HealthIndicators {
-  private container: HTMLElement;
-  private indicatorsContainer: HTMLElement;
-
   // Tooltip content for different metrics
   private static readonly TOOLTIPS = {
+    activity:
+      'Measure of recent updates and development pace based on commits and last update time.',
     busFactor:
       "The 'bus factor' measures project risk if key contributors leave. A higher number is better, meaning knowledge is well distributed among team members. A lower number indicates high dependency on few contributors.",
+    documentation: 'Quality and completeness of documentation including README, Wiki, and website.',
+    forks:
+      'Copies of the repository made by other users. Suggests reuse and adaptation of the code.',
     issueResolution:
       'The percentage of all issues that have been resolved. A higher rate indicates better project maintenance.',
+    maintenance: 'Assessment of issue handling, PR management, and project health.',
     prMerge:
       'The percentage of pull requests that were accepted and merged. Shows how open the project is to contributions.',
     stars:
       "GitHub's way for users to bookmark or show appreciation for a repository. Indicates popularity.",
-    forks:
-      'Copies of the repository made by other users. Suggests reuse and adaptation of the code.',
-    activity:
-      'Measure of recent updates and development pace based on commits and last update time.',
-    maintenance: 'Assessment of issue handling, PR management, and project health.',
-    documentation: 'Quality and completeness of documentation including README, Wiki, and website.',
   };
+  private container: HTMLElement;
+
+  private indicatorsContainer: HTMLElement;
 
   /**
    * Create a new health indicators component
@@ -33,7 +34,7 @@ export class HealthIndicators {
     // Create main container
     this.container = document.createElement('div');
     this.container.className = 'mt-8';
-    
+
     // Create section header with Tailwind classes
     const header = document.createElement('h3');
     header.className = 'flex items-center text-lg font-semibold mb-4 text-gray-900';
@@ -57,6 +58,14 @@ export class HealthIndicators {
   }
 
   /**
+   * Get the component's root element
+   * @returns The component's DOM element
+   */
+  public getElement(): HTMLElement {
+    return this.container;
+  }
+
+  /**
    * Set the data to display
    * @param data Analysis result data
    */
@@ -68,33 +77,33 @@ export class HealthIndicators {
     const indicators = [
       {
         name: 'Popularity',
-        value: this.getPopularityMessage(data),
         status: data.isPopular,
         tooltip: HealthIndicators.TOOLTIPS.stars + ' ' + HealthIndicators.TOOLTIPS.forks,
+        value: this.getPopularityMessage(data),
       },
       {
         name: 'Activity',
-        value: data.activityMessage || this.getActivityMessage(data),
         status: data.isActive,
         tooltip: HealthIndicators.TOOLTIPS.activity,
+        value: data.activityMessage || this.getActivityMessage(data),
       },
       {
         name: 'Community',
-        value: this.getCommunityMessage(data),
         status: data.hasCommunity,
         tooltip: HealthIndicators.TOOLTIPS.busFactor,
+        value: this.getCommunityMessage(data),
       },
       {
         name: 'Maintenance',
-        value: this.getMaintenanceMessage(data),
         status: data.isWellMaintained,
         tooltip: HealthIndicators.TOOLTIPS.issueResolution,
+        value: this.getMaintenanceMessage(data),
       },
       {
         name: 'Documentation',
-        value: this.getDocumentationMessage(data),
         status: data.hasReadme && (data.hasWiki || data.hasWebsite) ? true : data.isWellDocumented,
         tooltip: HealthIndicators.TOOLTIPS.documentation,
+        value: this.getDocumentationMessage(data),
       },
     ];
 
@@ -103,12 +112,21 @@ export class HealthIndicators {
       // Create indicator container with Tailwind classes
       const indicatorElement = document.createElement('div');
 
-      // Set base classes
-      indicatorElement.className = `flex items-center p-3 rounded-md mb-3 ${
-        indicator.status 
-          ? 'bg-[#34d39933] border-green-400' 
-          : 'bg-[#ef44441a] border-red-500'
-      } border-l-4 border-solid text-gray-900`;
+      // Set base classes using combineClasses utility
+      indicatorElement.className = combineClasses(
+        [
+          'flex',
+          'items-center',
+          'p-3',
+          'rounded-md',
+          'mb-3',
+          'border-l-4',
+          'border-solid',
+          'text-gray-900',
+          indicator.status ? 'bg-[#34d39933] border-green-400' : 'bg-[#ef44441a] border-red-500',
+        ],
+        []
+      );
 
       // Add icon
       const iconSpan = document.createElement('span');
@@ -139,9 +157,9 @@ export class HealthIndicators {
       let nameElement;
 
       if (indicator.tooltip) {
-        // Create a tooltip container using Tailwind classes
+        // Create a tooltip container with group for CSS-only hover effects
         const tooltipContainer = document.createElement('div');
-        tooltipContainer.className = 'relative inline-block group'; // 'group' for hover effects
+        tooltipContainer.className = 'relative inline-block group';
 
         const nameSpan = document.createElement('span');
         nameSpan.className = 'font-semibold text-gray-900';
@@ -149,14 +167,31 @@ export class HealthIndicators {
 
         tooltipContainer.appendChild(nameSpan);
 
-        // Create tooltip with Tailwind classes
+        // Create tooltip using our standardized tooltip class and CSS-only hover approach
         const tooltipText = document.createElement('div');
-        tooltipText.className = 'invisible opacity-0 group-hover:visible group-hover:opacity-100 transition-opacity duration-200 absolute bottom-full left-0 w-64 p-2 mb-1 rounded z-10 bg-gray-800 text-white text-sm';
+        // Combine Tailwind positioning classes with our custom tooltip class
+        tooltipText.className = combineClasses(
+          [
+            'absolute',
+            'bottom-full',
+            'left-0',
+            'w-64',
+            'p-2',
+            'mb-1',
+            'rounded',
+            'z-10',
+            'bg-gray-800',
+            'text-white',
+            'text-sm',
+          ],
+          [COMPONENT_CLASSES.TOOLTIP] // Use our standardized tooltip class
+        );
         tooltipText.innerHTML = indicator.tooltip;
 
         // Add a tooltip arrow
         const tooltipArrow = document.createElement('div');
-        tooltipArrow.className = 'absolute top-full left-4 border-4 border-solid border-transparent border-t-gray-800';
+        tooltipArrow.className =
+          'absolute top-full left-4 border-4 border-solid border-transparent border-t-gray-800';
         tooltipText.appendChild(tooltipArrow);
 
         tooltipContainer.appendChild(tooltipText);
@@ -178,17 +213,6 @@ export class HealthIndicators {
 
       this.indicatorsContainer.appendChild(indicatorElement);
     });
-  }
-
-  /**
-   * Generate popularity message with fallbacks
-   * @param data Analysis result data
-   * @returns Formatted popularity message
-   */
-  private getPopularityMessage(data: AnalysisResult): string {
-    const stars = data.metrics.stars || 0;
-    const forks = data.metrics.forks || 0;
-    return `${stars} ${stars === 1 ? 'star' : 'stars'}, ${forks} ${forks === 1 ? 'fork' : 'forks'}`;
   }
 
   /**
@@ -224,6 +248,21 @@ export class HealthIndicators {
   }
 
   /**
+   * Generate documentation message with fallbacks
+   * @param data Analysis result data
+   * @returns Formatted documentation message
+   */
+  private getDocumentationMessage(data: AnalysisResult): string {
+    const readmeStatus = data.hasReadme
+      ? `Has README${data.readmeLength > 300 ? ' (comprehensive)' : ''}`
+      : 'No README';
+
+    const extendedDocs = data.hasWebsite ? 'Has Website' : 'No Wiki/Website';
+
+    return `${readmeStatus}, ${extendedDocs}`;
+  }
+
+  /**
    * Generate maintenance message with fallbacks
    * @param data Analysis result data
    * @returns Formatted maintenance message
@@ -243,29 +282,13 @@ export class HealthIndicators {
   }
 
   /**
-   * Generate documentation message with fallbacks
+   * Generate popularity message with fallbacks
    * @param data Analysis result data
-   * @returns Formatted documentation message
+   * @returns Formatted popularity message
    */
-  private getDocumentationMessage(data: AnalysisResult): string {
-    const readmeStatus = data.hasReadme
-      ? `Has README${data.readmeLength > 300 ? ' (comprehensive)' : ''}`
-      : 'No README';
-
-    const extendedDocs = data.hasWebsite
-      ? 'Has Website'
-      : data.hasWiki
-        ? 'Has Wiki'
-        : 'No Wiki/Website';
-
-    return `${readmeStatus}, ${extendedDocs}`;
-  }
-
-  /**
-   * Get the component's root element
-   * @returns The component's DOM element
-   */
-  public getElement(): HTMLElement {
-    return this.container;
+  private getPopularityMessage(data: AnalysisResult): string {
+    const stars = data.metrics.stars || 0;
+    const forks = data.metrics.forks || 0;
+    return `${stars} ${stars === 1 ? 'star' : 'stars'}, ${forks} ${forks === 1 ? 'fork' : 'forks'}`;
   }
 }

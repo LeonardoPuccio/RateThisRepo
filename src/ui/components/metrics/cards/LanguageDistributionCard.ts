@@ -1,4 +1,5 @@
 import { AnalysisResult } from '@/interfaces/analysis.interface';
+
 import { CollapsibleCard } from '../CollapsibleCard';
 
 /**
@@ -31,6 +32,14 @@ export class LanguageDistributionCard {
    */
   public static hasData(data: AnalysisResult): boolean {
     return !!(data.metrics.languages && Object.keys(data.metrics.languages).length > 0);
+  }
+
+  /**
+   * Get the card element
+   * @returns The card DOM element
+   */
+  public getElement(): HTMLElement {
+    return this.card.getElement();
   }
 
   /**
@@ -101,13 +110,5 @@ export class LanguageDistributionCard {
 
     tableContainer.appendChild(table);
     return tableContainer;
-  }
-
-  /**
-   * Get the card element
-   * @returns The card DOM element
-   */
-  public getElement(): HTMLElement {
-    return this.card.getElement();
   }
 }

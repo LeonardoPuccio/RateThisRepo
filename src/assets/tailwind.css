@@ -73,11 +73,13 @@
   animation: rtr-pulse 2s infinite;
 }
 
-/* Tooltip styles */
+/* 
+ * CSS-only tooltip implementation
+ * Usage: Add 'group' class to parent, and this class to tooltip element
+ * The tooltip will appear on hover without JavaScript event handlers
+ */
 .rtr-tooltip {
   position: absolute;
-  visibility: hidden;
-  opacity: 0;
   background-color: #24292e;
   color: white;
   padding: 4px 10px;
@@ -87,14 +89,24 @@
   pointer-events: none;
   white-space: nowrap;
   z-index: 10000;
+  /* Initially invisible - shown via group-hover */
+  visibility: hidden;
+  opacity: 0;
 }
 
-.rtr-tooltip.visible {
+/* 
+ * Group hover selector for CSS-only tooltips
+ * This allows tooltips to show on parent hover without JavaScript
+ */
+.group:hover .rtr-tooltip {
   visibility: visible;
   opacity: 1;
 }
 
-/* Bar style for metrics (can be converted to Tailwind later) */
+/* 
+ * Bar style for progress indicators
+ * Used by ScoreDisplay component
+ */
 .rtr-bar {
   height: 100%;
   border-radius: 4px;

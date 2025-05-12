@@ -4,32 +4,32 @@
  */
 
 /**
- * Interface for data returned by ToggleButton's onMount callback
- */
-export interface ToggleButtonMountData {
-  container: HTMLElement;
-  button: HTMLButtonElement;
-  tooltip: HTMLDivElement;
-  buttonContainer: HTMLElement;
-}
-
-/**
  * Interface for data returned by AnalysisPanel's onMount callback
  */
 export interface AnalysisPanelMountData {
-  panelContainer: HTMLElement;
   contentContainer: HTMLElement;
+  panelContainer: HTMLElement;
+}
+
+/**
+ * Interface for collapsible card options
+ */
+export interface CollapsibleCardOptions {
+  content: HTMLElement;
+  icon: string;
+  isCollapsedByDefault?: boolean;
+  title: string;
 }
 
 /**
  * Interface for data returned by ErrorPanel's onMount callback
  */
 export interface ErrorPanelMountData {
+  closeButton: HTMLButtonElement;
   container: HTMLElement;
   errorContainer: HTMLElement;
-  errorTitle: HTMLElement;
   errorMessage: HTMLElement;
-  closeButton: HTMLButtonElement;
+  errorTitle: HTMLElement;
 }
 
 /**
@@ -37,17 +37,17 @@ export interface ErrorPanelMountData {
  */
 export interface HealthIndicatorItem {
   name: string;
-  value: string;
   status: boolean;
   tooltip?: string;
+  value: string;
 }
 
 /**
- * Interface for collapsible card options
+ * Interface for data returned by ToggleButton's onMount callback
  */
-export interface CollapsibleCardOptions {
-  title: string;
-  content: HTMLElement;
-  icon: string;
-  isCollapsedByDefault?: boolean;
+export interface ToggleButtonMountData {
+  button: HTMLButtonElement;
+  buttonContainer: HTMLElement;
+  container: HTMLElement;
+  tooltip: HTMLDivElement;
 }

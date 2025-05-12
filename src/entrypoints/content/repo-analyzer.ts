@@ -1,6 +1,6 @@
 import { AnalysisResult } from '@/interfaces/analysis.interface';
-import { debugLog } from '@/utils/config';
-import { ACTIONS } from '@/utils/constants';
+import { MessageService } from '@/services/MessageService';
+import { debugLog } from '@/utils/debug';
 import { RepositoryAnalyzer } from '@/utils/repository-analyzer';
 
 import { errorHandler } from './error-handler';
@@ -11,9 +11,11 @@ import { errorHandler } from './error-handler';
 export class RepoAnalyzer {
   private static instance: RepoAnalyzer;
   private isAnalyzing: boolean = false;
+  private messageService: MessageService;
 
   private constructor() {
     // Private constructor to enforce singleton
+    this.messageService = MessageService.getInstance();
   }
 
   /**
@@ -96,14 +98,9 @@ export class RepoAnalyzer {
    * Notify background script about analysis completion
    */
   public notifyAnalysisComplete(result: AnalysisResult): void {
-    browser.runtime
-      .sendMessage({
-        action: ACTIONS.ANALYSIS_COMPLETE,
-        data: result,
-      })
-      .catch(error => {
-        errorHandler.handleError(error as Error, 'messaging');
-      });
+    this.messageService.sendAnalysisComplete(result).catch(error => {
+      errorHandler.handleError(error as Error, 'messaging');
+    });
   }
 }
 

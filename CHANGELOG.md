@@ -2,6 +2,25 @@
 
 All notable changes to the RateThisRepo extension will be documented in this file.
 
+## [0.3.1] - 2025-05-12
+
+### Added
+- Type-safe messaging architecture for reliable cross-context communication
+- Enhanced state management with batched updates for better performance
+- Comprehensive testing utilities for consistent unit testing
+- Improved error handling and recovery throughout the extension
+
+### Changed
+- Refactored background script to use message handlers
+- Enhanced content script message handling for better maintainability
+- Standardized testing approach for Shadow DOM components
+- Improved event management in StateManager
+
+### Fixed
+- Potential race conditions in state updates
+- Improved error handling for edge cases
+- Enhanced reliability of panel visibility state
+
 ## [0.3.0] - 2025-04-18
 
 ### Added

@@ -1,33 +1,34 @@
 import { AnalysisResult } from '@/interfaces/analysis.interface';
-import { DragService } from '@/ui/services/DragService';
-import { DetailedMetricsPanel } from './DetailedMetricsPanel';
-import { HealthIndicators } from './HealthIndicators';
-import { ScoreDisplay } from './ScoreDisplay';
-import { IconHelper } from '@/ui/helpers/IconHelper';
 import { StateManager } from '@/services/StateManager';
+import { IconHelper } from '@/ui/helpers/IconHelper';
+import { AnalysisPanelMountData } from '@/ui/interfaces/ui-interfaces';
+import { DragService } from '@/ui/services/DragService';
+import { BUTTON_CLASSES } from '@/ui/styles/button-animations';
+import { debugLog, errorLog } from '@/utils/debug';
+import { ContentScriptContext } from 'wxt/utils/content-script-context';
 import {
   createShadowRootUi,
   ShadowRootContentScriptUi,
 } from 'wxt/utils/content-script-ui/shadow-root';
-import { ContentScriptContext } from 'wxt/utils/content-script-context';
-import { AnalysisPanelMountData } from '@/ui/interfaces/ui-interfaces';
-import { BUTTON_CLASSES } from '@/ui/styles/button-animations';
-import { DEBUG_MODE, errorLog, debugLog } from '@/utils/config';
+
+import { DetailedMetricsPanel } from './DetailedMetricsPanel';
+import { HealthIndicators } from './HealthIndicators';
+import { ScoreDisplay } from './ScoreDisplay';
 
 /**
  * AnalysisPanel component responsible for showing analysis results
  */
 export class AnalysisPanel {
-  private ui: ShadowRootContentScriptUi<AnalysisPanelMountData> | null = null;
-  private contentContainer!: HTMLElement;
-  private headerBar!: HTMLElement;
-  private dragService!: DragService;
-  private scoreDisplay!: ScoreDisplay;
-  private healthIndicators!: HealthIndicators;
-  private detailedMetricsPanel!: DetailedMetricsPanel;
   private closeCallback?: () => void;
+  private contentContainer!: HTMLElement;
   private ctx: ContentScriptContext;
+  private detailedMetricsPanel!: DetailedMetricsPanel;
+  private dragService!: DragService;
+  private headerBar!: HTMLElement;
+  private healthIndicators!: HealthIndicators;
   private internalOverlay: HTMLElement | null = null;
+  private scoreDisplay!: ScoreDisplay;
+  private ui: null | ShadowRootContentScriptUi<AnalysisPanelMountData> = null;
 
   /**
    * Create a new analysis panel
@@ -41,6 +42,17 @@ export class AnalysisPanel {
   }
 
   /**
+   * Hide the panel
+   * Note: Uses direct style manipulation for display property as it's more reliable
+   * than class toggling for this property
+   */
+  public hide(): void {
+    if (this.ui?.shadowHost) {
+      this.ui.shadowHost.style.display = 'none';
+    }
+  }
+
+  /**
    * Initialize the UI components
    * Must be called after construction and before using the panel
    */
@@ -48,17 +60,17 @@ export class AnalysisPanel {
     try {
       // Create the shadow root UI using WXT's API
       this.ui = await createShadowRootUi(this.ctx, {
-        name: 'repo-evaluator-panel',
-        position: 'inline',
         anchor: 'body',
         mode: 'open',
+        name: 'repo-evaluator-panel',
         onMount: (container, shadow, shadowHost) => {
           debugLog('ui', 'Mounting AnalysisPanel UI');
 
           // Add component base class
           container.classList.add(BUTTON_CLASSES.COMPONENT);
 
-          // Apply fixed positioning to the host element
+          // Note: We use direct styles for position-critical elements to ensure
+          // consistent positioning and dimensions across browsers
           shadowHost.style.position = 'fixed';
           shadowHost.style.top = '0';
           shadowHost.style.left = '0';
@@ -68,7 +80,7 @@ export class AnalysisPanel {
           shadowHost.style.zIndex = '10000';
           shadowHost.style.overflow = 'visible';
 
-          // Create an internal overlay inside the shadow DOM (replacing the global one)
+          // Internal overlay for shadow DOM encapsulation - creates a layer for panel positioning
           this.internalOverlay = document.createElement('div');
           this.internalOverlay.style.position = 'absolute';
           this.internalOverlay.style.top = '0';
@@ -76,27 +88,27 @@ export class AnalysisPanel {
           this.internalOverlay.style.width = '100%';
           this.internalOverlay.style.height = '100%';
           this.internalOverlay.style.pointerEvents = 'none'; // Let events pass through by default
-          
-          // Create the panel container (will be positioned in the overlay)
+
+          // Panel container with visual styling via Tailwind
           const panelContainer = document.createElement('div');
-          panelContainer.className =
-            'bg-white rounded-lg shadow-lg overflow-hidden text-gray-800 font-sans';
-          panelContainer.style.pointerEvents = 'auto'; // Make the panel capture events
+          panelContainer.className = 'bg-white rounded-lg shadow-lg text-gray-800 font-sans';
+
+          // Direct styles for exact positioning and sizing
           panelContainer.style.position = 'absolute';
           panelContainer.style.top = '20px';
           panelContainer.style.right = '20px';
           panelContainer.style.width = 'auto';
           panelContainer.style.maxWidth = '800px';
           panelContainer.style.maxHeight = '90vh';
-          panelContainer.style.overflow = 'hidden'; // Prevent horizontal overflow
-          panelContainer.style.overflowX = 'hidden'; // Prevent horizontal overflow
+          panelContainer.style.overflow = 'hidden';
+          panelContainer.style.pointerEvents = 'auto'; // Make sure panel captures events
 
           // Create panel elements
           this.createPanelElements(panelContainer);
 
           // Add the panel container to the overlay
           this.internalOverlay.appendChild(panelContainer);
-          
+
           // Add the overlay to the container
           container.appendChild(this.internalOverlay);
 
@@ -106,7 +118,8 @@ export class AnalysisPanel {
           // Add ID for legacy compatibility
           container.id = 'repo-evaluator-panel';
 
-          // Critical: Add wheel event handler to the panel
+          // Handle wheel events to prevent page scrolling when interacting with the panel
+          // while allowing scrolling within the content container
           panelContainer.addEventListener(
             'wheel',
             e => {
@@ -141,10 +154,11 @@ export class AnalysisPanel {
           );
 
           return {
-            panelContainer,
             contentContainer: this.contentContainer,
+            panelContainer,
           };
         },
+        position: 'inline',
       });
 
       debugLog('ui', 'AnalysisPanel UI initialized successfully');
@@ -155,67 +169,33 @@ export class AnalysisPanel {
   }
 
   /**
-   * Create panel elements inside the shadow DOM
+   * Mount the panel to the DOM
+   * Using correct WXT mounting methodology
    */
-  private createPanelElements(uiContainer: HTMLElement): void {
-    // Create header/title bar for dragging
-    this.headerBar = document.createElement('div');
-    this.headerBar.className =
-      'bg-gray-100 border-b border-gray-200 rounded-t-lg p-3 flex items-center justify-between cursor-move select-none';
+  public async mount(): Promise<void> {
+    // Ensure UI is initialized
+    if (!this.ui) {
+      await this.initialize();
+    }
 
-    // Create title for the header
-    const headerTitle = document.createElement('div');
-    headerTitle.className = 'font-semibold text-sm flex items-center text-gray-800';
+    // Mount the UI using WXT's mount method
+    try {
+      this.ui?.mount();
+      debugLog('ui', 'AnalysisPanel mounted successfully');
+    } catch (error) {
+      errorLog('ui', 'Error mounting AnalysisPanel UI:', error);
+      throw error;
+    }
+  }
 
-    // Add icon to title
-    headerTitle.innerHTML = `
-      ${IconHelper.getSvgIconString('repo')}
-      <span class="ml-2">RateThisRepo Analysis</span>
-    `;
-    this.headerBar.appendChild(headerTitle);
-
-    // Add a close button with Tailwind classes
-    const closeBtn = document.createElement('button');
-    closeBtn.innerHTML = '✕';
-    closeBtn.className =
-      'w-6 h-6 text-lg leading-6 text-center cursor-pointer text-gray-600 bg-gray-100/80 rounded-full transition-all hover:bg-gray-200 hover:text-gray-800';
-    closeBtn.setAttribute('aria-label', 'Close panel');
-
-    // Set close button behavior
-    closeBtn.onclick = () => {
-      // First update state in StateManager
-      const stateManager = StateManager.getInstance();
-      stateManager.setPanelVisibility(false).catch(error => {
-        errorLog('ui', 'Error closing panel via X button:', error);
-      });
-
-      // Call the close callback if provided
-      if (this.closeCallback) {
-        this.closeCallback();
-      }
-    };
-
-    this.headerBar.appendChild(closeBtn);
-
-    // Add header to panel
-    uiContainer.appendChild(this.headerBar);
-
-    // Create content container with separate scrolling using Tailwind classes
-    this.contentContainer = document.createElement('div');
-    this.contentContainer.className = 'w-full bg-white p-5 overflow-y-auto box-border';
-    this.contentContainer.style.overflowX = 'hidden'; // Prevent horizontal scrolling
-    this.contentContainer.style.pointerEvents = 'auto'; // Ensure it can capture events
-
-    // Apply max-height using inline style since Tailwind doesn't have exact values
-    this.contentContainer.style.height = 'calc(100% - 48px)';
-    this.contentContainer.style.maxHeight = 'calc(90vh - 48px)';
-
-    uiContainer.appendChild(this.contentContainer);
-
-    // Initialize sub-components
-    this.scoreDisplay = new ScoreDisplay();
-    this.healthIndicators = new HealthIndicators();
-    this.detailedMetricsPanel = new DetailedMetricsPanel(DEBUG_MODE);
+  /**
+   * Remove the panel from the DOM
+   */
+  public remove(): void {
+    if (this.ui) {
+      this.ui.remove();
+      this.ui = null;
+    }
   }
 
   /**
@@ -277,50 +257,13 @@ export class AnalysisPanel {
   }
 
   /**
-   * Mount the panel to the DOM
-   * Using correct WXT mounting methodology
-   */
-  public async mount(): Promise<void> {
-    // Ensure UI is initialized
-    if (!this.ui) {
-      await this.initialize();
-    }
-
-    // Mount the UI using WXT's mount method
-    try {
-      this.ui?.mount();
-      debugLog('ui', 'AnalysisPanel mounted successfully');
-    } catch (error) {
-      errorLog('ui', 'Error mounting AnalysisPanel UI:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Remove the panel from the DOM
-   */
-  public remove(): void {
-    if (this.ui) {
-      this.ui.remove();
-      this.ui = null;
-    }
-  }
-
-  /**
    * Show the panel
+   * Note: Uses direct style manipulation for display property as it's more reliable
+   * than class toggling for this property
    */
   public show(): void {
     if (this.ui?.shadowHost) {
       this.ui.shadowHost.style.display = 'block';
-    }
-  }
-
-  /**
-   * Hide the panel
-   */
-  public hide(): void {
-    if (this.ui?.shadowHost) {
-      this.ui.shadowHost.style.display = 'none';
     }
   }
 
@@ -335,5 +278,69 @@ export class AnalysisPanel {
         this.hide();
       }
     }
+  }
+
+  /**
+   * Create panel elements inside the shadow DOM
+   */
+  private createPanelElements(uiContainer: HTMLElement): void {
+    // Create header/title bar for dragging
+    this.headerBar = document.createElement('div');
+    this.headerBar.className =
+      'bg-gray-100 border-b border-gray-200 rounded-t-lg p-3 flex items-center justify-between cursor-move select-none';
+
+    // Create title for the header
+    const headerTitle = document.createElement('div');
+    headerTitle.className = 'font-semibold text-sm flex items-center text-gray-800';
+
+    // Add icon to title
+    headerTitle.innerHTML = `
+      ${IconHelper.getSvgIconString('repo')}
+      <span class="ml-2">RateThisRepo Analysis</span>
+    `;
+    this.headerBar.appendChild(headerTitle);
+
+    // Add a close button with Tailwind classes
+    const closeBtn = document.createElement('button');
+    closeBtn.innerHTML = '✕';
+    closeBtn.className =
+      'w-6 h-6 text-lg leading-6 text-center cursor-pointer text-gray-600 bg-gray-100/80 rounded-full transition-all hover:bg-gray-200 hover:text-gray-800';
+    closeBtn.setAttribute('aria-label', 'Close panel');
+
+    // Set close button behavior
+    closeBtn.onclick = () => {
+      // First update state in StateManager
+      const stateManager = StateManager.getInstance();
+      stateManager.setPanelVisibility(false).catch(error => {
+        errorLog('ui', 'Error closing panel via X button:', error);
+      });
+
+      // Call the close callback if provided
+      if (this.closeCallback) {
+        this.closeCallback();
+      }
+    };
+
+    this.headerBar.appendChild(closeBtn);
+
+    // Add header to panel
+    uiContainer.appendChild(this.headerBar);
+
+    // Create content container with separate scrolling
+    this.contentContainer = document.createElement('div');
+    this.contentContainer.className = 'w-full bg-white p-5 overflow-y-auto box-border';
+
+    // Direct styles for precise layout calculations and pointer behavior
+    this.contentContainer.style.overflowX = 'hidden';
+    this.contentContainer.style.pointerEvents = 'auto';
+    this.contentContainer.style.height = 'calc(100% - 48px)';
+    this.contentContainer.style.maxHeight = 'calc(90vh - 48px)';
+
+    uiContainer.appendChild(this.contentContainer);
+
+    // Initialize sub-components
+    this.scoreDisplay = new ScoreDisplay();
+    this.healthIndicators = new HealthIndicators();
+    this.detailedMetricsPanel = new DetailedMetricsPanel();
   }
 }
