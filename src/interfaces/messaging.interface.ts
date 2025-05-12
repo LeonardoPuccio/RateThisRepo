@@ -19,14 +19,20 @@ export interface ActionMessage {
  */
 export interface AnalysisCompleteMessage extends Message {
   action: typeof ACTIONS.ANALYSIS_COMPLETE;
+  /** Analysis result data */
   data: AnalysisResult;
 }
+
+// =================================================================================
+// Analysis related message interfaces
+// =================================================================================
 
 /**
  * Analysis response
  */
 export interface AnalysisResponse extends SuccessResponse {
-  data?: unknown;
+  /** Analysis data if successful */
+  data?: AnalysisResult;
 }
 
 /**
@@ -34,17 +40,27 @@ export interface AnalysisResponse extends SuccessResponse {
  */
 export interface AnalyzeRepoMessage extends Message {
   action: typeof ACTIONS.ANALYZE_REPO;
+  /** Whether to force a refresh of cached data */
+  forceRefresh?: boolean;
 }
 
 /**
- * Response types for MessageService
+ * Error response
  */
 export interface ErrorResponse {
+  /** Additional error data */
   [key: string]: unknown;
+  /** Error message describing what went wrong */
   error?: string;
+  /** More detailed reason for the error */
   reason?: string;
+  /** Indicates the operation failed */
   success: false;
 }
+
+// =================================================================================
+// UI state related message interfaces
+// =================================================================================
 
 /**
  * Union type of all message types
@@ -56,9 +72,14 @@ export type ExtensionMessage =
   | HidePanelMessage
   | OptionsUpdatedMessage
   | ShowPanelMessage
-  | TogglePanelMessage;
+  | TogglePanelMessage
+  | UpdateStateMessage;
 
-// --- Preparation of more detailed interfaces for MessageService ---
+/**
+ * Generic response type that allows for more flexible response handling
+ * while maintaining some type safety
+ */
+export type GenericResponse = MessageResponse | Record<string, unknown> | undefined;
 
 /**
  * Message to request current state
@@ -111,46 +132,66 @@ export interface Message {
   action: string;
 }
 
+// =================================================================================
+// Response interfaces
+// =================================================================================
+
 /**
  * Handler type for message actions
  */
 export type MessageHandler = (
   message: ActionMessage | ExtensionMessage | Message,
   sender: Browser.runtime.MessageSender,
-  sendResponse: (response?: MessageResponse) => void
+  sendResponse: (response?: GenericResponse) => void
 ) => boolean | Promise<unknown> | void;
 
+/**
+ * Combined response type
+ */
 export type MessageResponse = AppState | ErrorResponse | SuccessResponse;
 
 /**
  * Information about the message sender
  */
 export interface MessageSender {
+  /** Sender extension ID */
   id?: string;
+  /** Tab information if message from a tab */
   tab?: {
     id?: number;
   };
 }
+
+// =================================================================================
+// Type unions and service interfaces
+// =================================================================================
 
 /**
  * Message to notify of options updates
  */
 export interface OptionsUpdatedMessage extends Message {
   action: typeof ACTIONS.OPTIONS_UPDATED;
+  /** The options that were updated */
+  options?: {
+    [key: string]: unknown;
+    showFloatingButton?: boolean;
+  };
 }
 
 /**
- * Panel visibility response
+ * Response for panel visibility operations
  */
 export interface PanelVisibilityResponse extends SuccessResponse {
+  /** Whether the panel is currently visible */
   isPanelVisible: boolean;
+  /** Reason for failure if applicable */
   reason?: string;
 }
 
 /**
  * Callback function for responses to messages
  */
-export type ResponseCallback = (response?: unknown) => void;
+export type ResponseCallback = (response?: GenericResponse) => void;
 
 /**
  * Message to show panel
@@ -163,8 +204,11 @@ export interface ShowPanelMessage extends Message {
  * Standard response structure for most message handlers
  */
 export interface SuccessResponse {
+  /** Additional response data */
   [key: string]: unknown;
+  /** Optional error message if success is false */
   error?: string;
+  /** Indicates if the operation was successful */
   success: boolean;
 }
 
@@ -173,4 +217,23 @@ export interface SuccessResponse {
  */
 export interface TogglePanelMessage extends Message {
   action: typeof ACTIONS.TOGGLE_PANEL;
+}
+
+/**
+ * Message to update state
+ */
+export interface UpdateStateMessage extends Message {
+  action: typeof ACTIONS.UPDATE_STATE;
+  /** Partial state to update */
+  state: Partial<AppState>;
+}
+
+/**
+ * Type guard function to check if a message is a valid ExtensionMessage
+ */
+export function isExtensionMessage(message: unknown): message is ExtensionMessage {
+  if (!message || typeof message !== 'object') return false;
+
+  const msg = message as Record<string, unknown>;
+  return 'action' in msg && typeof msg.action === 'string';
 }

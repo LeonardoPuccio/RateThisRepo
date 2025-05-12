@@ -2,12 +2,60 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ContentScriptContext } from 'wxt/utils/content-script-context';
 
-// Mock elements that we'll use for testing
+import {
+  createShadowUiMock,
+  getPrivateMember,
+  mockDebugLog,
+  mockErrorLog,
+  setPrivateMember,
+  setupDomMocks,
+  setupSilentLogMocks,
+} from '../../utils/test-utils';
+
+// Define BUTTON_CLASSES directly here for mocking
+const BUTTON_CLASSES = {
+  ACTIVE: 'rtr-button-active',
+  COMPONENT: 'rtr-component',
+  CONTAINER: 'rtr-button-container',
+  DEFAULT: 'rtr-button-default',
+  TOOLTIP: 'rtr-tooltip',
+  TOOLTIP_VISIBLE: 'visible',
+};
+
+// IMPORTANT: First define the mocks that need to be hoisted
+vi.mock('@/utils/debug', () => ({
+  debugLog: mockDebugLog,
+  errorLog: mockErrorLog,
+  logPerformance: vi.fn(),
+  logUIState: vi.fn(),
+}));
+
+vi.mock('@/utils/config', () => ({
+  DEBUG_CONFIG: {
+    ui: false,
+  },
+  DEBUG_MODE: false,
+}));
+
+// Mock button classes - important to export the constant directly instead of in a function
+vi.mock('@/ui/styles/button-animations', () => ({
+  BUTTON_CLASSES,
+}));
+
+// Reset mock functions
+setupSilentLogMocks();
+
+// Get standard shadow UI mocks
+const { mockShadowHost, mockShadowUi } = createShadowUiMock();
+
+// Create standard button UI mocks - adding all necessary properties
 const mockButton = {
   addEventListener: vi.fn(),
   classList: {
     add: vi.fn(),
+    contains: vi.fn().mockReturnValue(false),
     remove: vi.fn(),
+    toggle: vi.fn(),
   },
   innerHTML: '',
   setAttribute: vi.fn(),
@@ -17,7 +65,9 @@ const mockButton = {
 const mockTooltip = {
   classList: {
     add: vi.fn(),
+    contains: vi.fn().mockReturnValue(false),
     remove: vi.fn(),
+    toggle: vi.fn(),
   },
   style: {},
   textContent: '',
@@ -28,64 +78,15 @@ const mockButtonContainer = {
   appendChild: vi.fn(),
   classList: {
     add: vi.fn(),
+    contains: vi.fn().mockReturnValue(false),
+    remove: vi.fn(),
+    toggle: vi.fn(),
   },
   className: '',
   style: {},
 };
 
-// Mock shadow host for UI
-const mockShadowHost = {
-  style: {
-    bottom: '',
-    display: 'block',
-    height: '',
-    overflow: '',
-    pointerEvents: '',
-    position: '',
-    right: '',
-    width: '',
-    zIndex: '',
-  },
-};
-
-const mockShadowUi = {
-  autoMount: vi.fn(),
-  mount: vi.fn(),
-  remove: vi.fn(),
-  shadowHost: mockShadowHost,
-  unmount: vi.fn(),
-};
-
-// Mock document.createElement to return our mock objects
-const createElement = vi.fn(tagName => {
-  if (tagName === 'button') {
-    return mockButton;
-  } else if (tagName === 'div') {
-    // Return different divs based on creation order
-    if (createElement.mock.calls.filter(call => call[0] === 'div').length === 1) {
-      return mockButtonContainer;
-    } else {
-      return mockTooltip;
-    }
-  }
-  // Default element
-  return {
-    addEventListener: vi.fn(),
-    appendChild: vi.fn(),
-    classList: { add: vi.fn() },
-    style: {},
-  };
-});
-
-// Mock document
-vi.stubGlobal('document', {
-  body: {
-    appendChild: vi.fn(),
-  },
-  createElement,
-});
-
-// Mock WXT's shadow DOM API
+// Mock WXT's shadow DOM API - must be defined after the mock elements
 vi.mock('wxt/utils/content-script-ui/shadow-root', () => ({
   createShadowRootUi: vi.fn(async (ctx, options) => {
     // Create container element
@@ -94,7 +95,7 @@ vi.mock('wxt/utils/content-script-ui/shadow-root', () => ({
       classList: { add: vi.fn() },
     };
 
-    // Make sure we call onMount directly
+    // Call the onMount function with our mocks if provided
     if (options && options.onMount) {
       options.onMount(container, { host: mockShadowHost }, mockShadowHost);
     }
@@ -103,23 +104,37 @@ vi.mock('wxt/utils/content-script-ui/shadow-root', () => ({
   }),
 }));
 
-// Mock config
-vi.mock('@/utils/config', () => ({
-  debugLog: vi.fn(),
-  errorLog: vi.fn(),
-}));
+// Set up standard DOM mocks - must be after defining all mock elements
+const { mockCreateElement } = setupDomMocks();
 
-// Mock button classes
-vi.mock('@/ui/styles/button-animations', () => ({
-  BUTTON_CLASSES: {
-    ACTIVE: 'rtr-button-active',
-    COMPONENT: 'rtr-component',
-    CONTAINER: 'rtr-button-container',
-    DEFAULT: 'rtr-button-default',
-    TOOLTIP: 'rtr-tooltip',
-    TOOLTIP_VISIBLE: 'visible',
-  },
-}));
+// Custom mock implementation for document.createElement
+document.createElement = vi.fn(tagName => {
+  if (tagName === 'button') {
+    return mockButton;
+  } else if (tagName === 'div') {
+    // Return different divs based on creation order
+    const divCalls = document.createElement.mock.calls.filter(call => call[0] === 'div').length;
+    if (divCalls === 1) {
+      return mockButtonContainer;
+    } else {
+      return mockTooltip;
+    }
+  }
+  // Default element with basic properties
+  return {
+    addEventListener: vi.fn(),
+    appendChild: vi.fn(),
+    classList: {
+      add: vi.fn(),
+      contains: vi.fn(),
+      remove: vi.fn(),
+      toggle: vi.fn(),
+    },
+    className: '',
+    innerHTML: '',
+    style: {},
+  };
+});
 
 describe('ToggleButton', () => {
   let ToggleButton;
@@ -166,8 +181,8 @@ describe('ToggleButton', () => {
     await toggleButton.initialize();
 
     // Verify document.createElement was called with correct arguments
-    expect(createElement).toHaveBeenCalledWith('div');
-    expect(createElement).toHaveBeenCalledWith('button');
+    expect(document.createElement).toHaveBeenCalledWith('div');
+    expect(document.createElement).toHaveBeenCalledWith('button');
 
     // Verify button was set up correctly
     expect(mockButton.setAttribute).toHaveBeenCalledWith('aria-label', 'Analyze Repository');
@@ -185,9 +200,8 @@ describe('ToggleButton', () => {
   });
 
   it('should mount button to the DOM', async () => {
-    // Set UI property
-    // @ts-expect-error - accessing private property for testing
-    toggleButton.ui = mockShadowUi;
+    // Set UI property using our new utility
+    setPrivateMember(toggleButton, 'ui', mockShadowUi);
 
     // Mount the button
     await toggleButton.mount();
@@ -197,9 +211,8 @@ describe('ToggleButton', () => {
   });
 
   it('should remove button from the DOM', () => {
-    // Set UI property
-    // @ts-expect-error - accessing private property for testing
-    toggleButton.ui = mockShadowUi;
+    // Set UI property using our new utility
+    setPrivateMember(toggleButton, 'ui', mockShadowUi);
 
     // Remove the button
     toggleButton.remove();
@@ -207,15 +220,13 @@ describe('ToggleButton', () => {
     // Verify remove was called
     expect(mockShadowUi.remove).toHaveBeenCalled();
 
-    // Verify UI reference was cleared
-    // @ts-expect-error - accessing private property for testing
-    expect(toggleButton.ui).toBeNull();
+    // Verify UI reference was cleared using our new utility
+    expect(getPrivateMember(toggleButton, 'ui')).toBeNull();
   });
 
   it('should set active state correctly', () => {
-    // Set button property
-    // @ts-expect-error - accessing private property for testing
-    toggleButton.button = mockButton;
+    // Set button property using our new utility
+    setPrivateMember(toggleButton, 'button', mockButton);
 
     // Set to active
     toggleButton.setActive(true);
@@ -233,9 +244,8 @@ describe('ToggleButton', () => {
   });
 
   it('should call toggle callback when clicked', () => {
-    // Access the private method
-    // @ts-expect-error - accessing private method for testing
-    const handleClick = toggleButton.handleClick.bind(toggleButton);
+    // Access the private method using our new utility
+    const handleClick = getPrivateMember(toggleButton, 'handleClick').bind(toggleButton);
 
     // Call the handler
     handleClick();
@@ -245,15 +255,12 @@ describe('ToggleButton', () => {
   });
 
   it('should show and hide tooltip', () => {
-    // Set tooltip property
-    // @ts-expect-error - accessing private property for testing
-    toggleButton.tooltip = mockTooltip;
+    // Set tooltip property using our new utility
+    setPrivateMember(toggleButton, 'tooltip', mockTooltip);
 
-    // Get the private methods
-    // @ts-expect-error - accessing private method for testing
-    const showTooltip = toggleButton.showTooltip.bind(toggleButton);
-    // @ts-expect-error - accessing private method for testing
-    const hideTooltip = toggleButton.hideTooltip.bind(toggleButton);
+    // Get the private methods using our new utility
+    const showTooltip = getPrivateMember(toggleButton, 'showTooltip').bind(toggleButton);
+    const hideTooltip = getPrivateMember(toggleButton, 'hideTooltip').bind(toggleButton);
 
     // Test show tooltip
     showTooltip();

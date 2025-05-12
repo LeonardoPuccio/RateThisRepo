@@ -27,6 +27,7 @@ tests/
 │   │   │   └── ShadowDomTailwind.test.ts # Tests for Shadow DOM + Tailwind integration
 │   │   └── ThemeCompatibility.test.ts # Tests for GitHub theme compatibility
 │   └── utils/                      # Tests for utility functions
+│       └── test-utils.ts           # Shared testing utilities
 └── basic.test.ts                   # Basic smoke tests
 ```
 
@@ -106,189 +107,81 @@ When writing tests for RateThisRepo, follow these guidelines:
 
 8. **Test UI across themes**: Ensure UI components work correctly with all GitHub themes.
 
-## Testing WXT Components with Shadow DOM
+## Testing Utilities
 
-Testing components that use WXT's Shadow DOM integration requires special considerations:
+The project provides standardized testing utilities in `tests/unit/utils/test-utils.ts` to help maintain consistent testing patterns:
 
-### Mocking Strategy
-
-1. **Create Shared Mock References**: Define mock objects at the module level to ensure consistent references:
-
-```javascript
-// Create mock objects at the module level
-const mockScoreDisplay = {
-  setScore: vi.fn(),
-  getElement: vi.fn(() => createElementMock())
-};
-
-// Use these in your mocks
-vi.mock('@/ui/components/ScoreDisplay', () => ({
-  ScoreDisplay: vi.fn().mockImplementation(() => mockScoreDisplay)
-}));
-```
-
-2. **Properly Mock DOM Elements**: DOM element mocks need all the properties your component accesses:
-
-```javascript
-function createElementMock() {
-  return {
-    style: {
-      position: '',
-      top: '',
-      zIndex: '',
-      // Include all style properties used in your component
-    },
-    classList: {
-      add: vi.fn(),
-      remove: vi.fn(),
-      contains: vi.fn()
-    },
-    // Include all DOM properties and methods used
-    appendChild: vi.fn(),
-    innerHTML: '',
-    // ... other properties
-  };
-}
-```
-
-3. **Mock ShadowRootUi**: Create a proper mock for WXT's shadow root UI:
-
-```javascript
-const mockShadowUi = {
-  mount: vi.fn(),
-  remove: vi.fn(),
-  shadowHost: { style: { display: 'block' } }
-};
-
-vi.mock('wxt/utils/content-script-ui/shadow-root', () => ({
-  createShadowRootUi: vi.fn().mockResolvedValue(mockShadowUi)
-}));
-```
-
-### Testing Approach
-
-For complex components like those using Shadow DOM, use an incremental testing approach:
-
-1. **Start with Import Tests**: Verify that the component can be imported without errors:
-
-```javascript
-describe('Basic Import', () => {
-  it('should import correctly', async () => {
-    const { MyComponent } = await import('@/path/to/MyComponent');
-    expect(MyComponent).toBeDefined();
-  });
-});
-```
-
-2. **Test Simple Methods First**: Test methods that don't require complex initialization:
-
-```javascript
-describe('Basic Methods', () => {
-  // Test methods that don't rely on initialization
-});
-```
-
-3. **Use Direct Property Injection**: For methods that require initialized state, inject the properties directly:
-
-```javascript
-describe('UI methods with mocked state', () => {
-  beforeEach(() => {
-    // @ts-ignore - setting private properties for testing
-    component.ui = mockShadowUi;
-  });
-  
-  it('should show correctly', () => {
-    component.show();
-    expect(mockShadowUi.shadowHost.style.display).toBe('block');
-  });
-});
-```
-
-4. **Test Critical Paths**: Focus on testing the most important functionality first.
-
-### Testing Error Handling
-
-To test error handling in components, especially when the actual implementation would throw errors before your checks:
-
-1. **Method Mocking Approach**:
-
-```javascript
-// Save original method implementation
-const originalMethod = component.someMethod;
-
-// Create a mock that handles the error case first
-// @ts-ignore - we're mocking the method
-component.someMethod = vi.fn().mockImplementation((input) => {
-  // Early validation
-  if (!input) {
-    mockErrorLog('ui', 'Error message');
-    return;
-  }
-  // Call original implementation for valid inputs
-  return originalMethod.call(component, input);
-});
-
-// Now test with invalid input
-component.someMethod(null);
-expect(mockErrorLog).toHaveBeenCalled();
-```
-
-2. **Handling TypeScript Errors**:
-
-When testing components with TypeScript, you'll often need to use type assertions for accessing private members:
+### Private Member Access
 
 ```typescript
-// For accessing private properties
-// @ts-ignore - accessing private property for testing
-expect(component.privateProperty).toBeNull();
+// Access a private property without @ts-expect-error
+const ui = getPrivateMember(component, 'ui');
 
-// For setting private properties
-// @ts-ignore - setting private property for testing
-component.privateProperty = mockValue;
-
-// When passing known invalid values to test error handling
-// @ts-ignore - deliberately passing null to test error handling
-component.method(null);
+// Set a private property without @ts-expect-error
+setPrivateMember(component, 'ui', mockUi);
 ```
 
-This approach allows testing error paths while working around TypeScript's type checking.
+### DOM Element Mocking
 
-### Handling Hoisting Issues
+```typescript
+// Set up standard DOM mocks
+const { mockBody, mockCreateElement, createElement } = setupDomMocks();
 
-Vitest hoists `vi.mock()` calls to the top of the file, which can cause issues with variable initialization:
+// Shadow DOM mock helpers
+const { mockShadowHost, mockShadowUi } = createShadowUiMock();
+```
 
-```javascript
-// BAD: This will cause "Cannot access variable before initialization"
-vi.mock('some-module', () => ({
-  someFunction: () => mockVariable
-}));
-const mockVariable = { foo: 'bar' };
+### Silent Logging
 
-// GOOD: Define variables first, then use vi.mock()
-const mockVariable = { foo: 'bar' };
-vi.mock('some-module', () => ({
-  someFunction: () => mockVariable
+Logs are automatically silenced globally in tests through the `tests/setup.ts` file, which mocks the debug utilities module:
+
+```typescript
+// This is done globally in tests/setup.ts
+vi.mock('@/utils/debug', () => ({
+  debugLog: vi.fn(),
+  errorLog: vi.fn(),
+  logPerformance: vi.fn(),
+  logUIState: vi.fn(),
 }));
 ```
 
-### Testing DOM Manipulations
+If you need to verify that certain logs were called in your tests:
 
-When testing methods that manipulate the DOM:
+```typescript
+import { debugLog, errorLog } from '@/utils/debug';
 
-1. Use `Object.defineProperty` for complex properties:
-
-```javascript
-Object.defineProperty(element, 'innerHTML', {
-  set: vi.fn(),
-  get: vi.fn(() => '')
+// Your test
+it('should log an error when invalid data is provided', () => {
+  // Test your component
+  component.processData(null);
+  
+  // Verify the error was logged with the correct parameters
+  expect(errorLog).toHaveBeenCalledWith('component', 'Invalid data provided');
 });
 ```
 
-2. Store references to methods that might be nullified during the test:
+### Error Testing
 
-```javascript
-const removeChildMock = vi.fn();
-// Use this reference in expectations even after the element is removed
+```typescript
+// Verify an error was logged with the expected parameters
+expect(errorLog).toHaveBeenCalledWith('ui', 'Cannot set data: Invalid data provided');
+```
+
+## Vitest Module Hoisting
+
+Remember that Vitest hoists `vi.mock()` calls to the top of the file, so define any variables used within mocks before they're referenced:
+
+```typescript
+// CORRECT: Define constants before using them in vi.mock()
+const BUTTON_CLASSES = {
+  ACTIVE: 'rtr-button-active',
+  DEFAULT: 'rtr-button-default',
+};
+
+// Then use them in vi.mock()
+vi.mock('@/ui/styles/button-animations', () => ({
+  BUTTON_CLASSES,
+}));
 ```
 
 ## GitHub CI/CD Integration

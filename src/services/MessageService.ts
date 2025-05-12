@@ -1,9 +1,14 @@
+import { AnalysisResult } from '@/interfaces/analysis.interface';
 import {
+  AnalysisCompleteMessage,
   ExtensionMessage,
+  GenericResponse,
   IMessageService,
+  isExtensionMessage,
   MessageHandler,
   MessageResponse,
 } from '@/interfaces/messaging.interface';
+import { ACTIONS } from '@/utils/constants';
 import { debugLog, errorLog } from '@/utils/debug';
 
 /**
@@ -17,7 +22,7 @@ export class MessageService implements IMessageService {
     | ((
         message: unknown,
         sender: Browser.runtime.MessageSender,
-        sendResponse: (response?: MessageResponse) => void
+        sendResponse: (response?: GenericResponse) => void
       ) => boolean)
     | null = null;
 
@@ -66,14 +71,39 @@ export class MessageService implements IMessageService {
   }
 
   /**
+   * Utility method to request repository analysis
+   */
+  public async requestAnalyzeRepo(forceRefresh = false): Promise<MessageResponse> {
+    return this.sendMessage({
+      action: ACTIONS.ANALYZE_REPO,
+      forceRefresh,
+    });
+  }
+
+  /**
+   * Utility method to send analysis complete message
+   */
+  public async sendAnalysisComplete(data: AnalysisResult): Promise<void> {
+    const message: AnalysisCompleteMessage = {
+      action: ACTIONS.ANALYSIS_COMPLETE,
+      data: data,
+    };
+    await this.sendMessage(message);
+  }
+
+  /**
    * Send a message to the extension
    */
   public async sendMessage<T extends MessageResponse>(message: ExtensionMessage): Promise<T> {
     try {
+      if (!isExtensionMessage(message)) {
+        throw new Error('Invalid message format');
+      }
+
       debugLog('messaging', `Sending message: ${message.action}`);
       return (await browser.runtime.sendMessage(message)) as T;
     } catch (error) {
-      errorLog('messaging', `Error sending message (${message.action}):`, error);
+      this.handleSendError(message.action, error);
       throw error;
     }
   }
@@ -86,12 +116,25 @@ export class MessageService implements IMessageService {
     message: ExtensionMessage
   ): Promise<T> {
     try {
+      if (!isExtensionMessage(message)) {
+        throw new Error('Invalid message format');
+      }
+
       debugLog('messaging', `Sending tab message to tab ${tabId}: ${message.action}`);
       return (await browser.tabs.sendMessage(tabId, message)) as T;
     } catch (error) {
-      errorLog('messaging', `Error sending tab message (${message.action}):`, error);
+      this.handleSendError(message.action, error, tabId);
       throw error;
     }
+  }
+
+  /**
+   * Utility method to toggle panel visibility
+   */
+  public async togglePanel(): Promise<MessageResponse> {
+    return this.sendMessage({
+      action: ACTIONS.TOGGLE_PANEL,
+    });
   }
 
   /**
@@ -111,21 +154,32 @@ export class MessageService implements IMessageService {
   }
 
   /**
+   * Utility method to update state
+   */
+  public async updateState(state: Record<string, unknown>): Promise<MessageResponse> {
+    return this.sendMessage({
+      action: ACTIONS.UPDATE_STATE,
+      state,
+    });
+  }
+
+  /**
    * Handle incoming messages
    * Uses unknown type first to validate message structure before processing
    */
   private handleMessage(
     message: unknown,
     sender: Browser.runtime.MessageSender,
-    sendResponse: (response?: MessageResponse) => void
+    sendResponse: (response?: GenericResponse) => void
   ): boolean {
     // Type guard to validate message structure
-    if (!message || typeof message !== 'object' || !('action' in message)) {
-      errorLog('messaging', 'Received message without action:', message);
+    if (!isExtensionMessage(message)) {
+      errorLog('messaging', 'Received invalid message format:', message);
+      sendResponse({ error: 'Invalid message format', success: false });
       return false;
     }
 
-    const { action } = message as { action: string };
+    const { action } = message;
 
     debugLog('messaging', `Received message: ${action}`);
 
@@ -149,8 +203,24 @@ export class MessageService implements IMessageService {
       }
 
       return hasAsyncHandler;
+    } else {
+      debugLog('messaging', `No handlers registered for action: ${action}`);
+      sendResponse({ error: `No handler for action: ${action}`, success: false });
     }
 
     return false;
+  }
+
+  /**
+   * Centralized error handling for message sending
+   */
+  private handleSendError(action: string, error: unknown, tabId?: number): void {
+    const tabInfo = tabId ? ` to tab ${tabId}` : '';
+    const errorMessage = error instanceof Error ? error.message : String(error);
+
+    errorLog('messaging', `Error sending message${tabInfo} (${action}): ${errorMessage}`, error);
+
+    // Additional error handling logic can be added here
+    // For example, retrying, notifying the user, etc.
   }
 }
